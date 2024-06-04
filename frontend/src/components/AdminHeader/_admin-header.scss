@@ -1,5 +1,6 @@
 @use '../../pages/Admin/colors' as color;
 @use '../../assets/fontes' as font;
+@use 'sass:math';
 @import '../../assets/variables';
 
 @include font.inter;
@@ -20,22 +21,13 @@ $horizontal: 1.5rem;
   }
 
   &__logo {
-    margin-right: calc($horizontal / 2);
-    min-height: 50px;
-    max-height: 60px;
-  }
-
-  &__complete-logo {
-    @media ($smartphone-and-tablet-size) {
-      display: none;
-    }
-  }
-
-  &__minimal-logo {
-    display: none;
+    margin-right: $horizontal;
+    height: 60px;
+    display: block;
 
     @media ($smartphone-and-tablet-size) {
-      display: initial;
+      height: 50px;
+      width: auto;
     }
   }
 
@@ -45,6 +37,28 @@ $horizontal: 1.5rem;
     justify-content: start;
     align-items: center;
     width: 100%;
+
+    @media ($smartphone-and-tablet-size) {
+      display: none;
+    }
+  }
+
+  &__burger-menu {
+    display: none;
+
+    @media ($smartphone-and-tablet-size) {
+      display: initial;
+      margin-left: auto;
+    }
+  }
+
+  &__logo-container {
+    @media ($smartphone-and-tablet-size) {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      width: 100%;
+    }
   }
 
   &__btn {
@@ -67,6 +81,59 @@ $horizontal: 1.5rem;
     & ~ & {
       // Hack to emulate :first-child
       margin: 0;
+    }
+  }
+}
+
+.admin-header-sidebar {
+  display: none;
+
+  @media ($smartphone-and-tablet-size) {
+    // Burger Menu doesn't exist in desktop mode.
+    // This prevents a page soft-lock if resolution changes with sidebar active.
+    display: flex;
+  }
+
+  position: fixed;
+  top: 0;
+  left: 100%;
+  transition: left 0.5s ease;
+  height: 100%;
+  z-index: math.$max-safe-integer;
+  flex-direction: column;
+
+  &.open {
+    left: 0;
+  }
+
+  .admin-header {
+    &__logo-container {
+      height: fit-content;
+      margin-bottom: $vertical;
+    }
+
+    &__nav {
+      display: initial;
+      display: flex;
+      height: 100%;
+      flex-direction: column;
+      justify-content: start;
+      align-items: start;
+    }
+
+    &__btn {
+      padding: $vertical 0;
+      height: auto;
+    }
+
+    &__btn-end-align {
+      margin-left: unset;
+      margin-top: auto;
+
+      & ~ & {
+        // Hack to emulate :first-child of :first-of-type
+        margin-top: unset;
+      }
     }
   }
 }
