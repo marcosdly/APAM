@@ -1,0 +1,72 @@
+@use '../../pages/Admin/colors' as color;
+@use '../../assets/fontes' as font;
+@import '../../assets/variables';
+
+@include font.inter;
+
+$vertical: 1rem;
+$horizontal: 1.5rem;
+
+.admin-header {
+  background-color: color.$secondary;
+  width: 100%;
+  padding: $vertical $horizontal $vertical $horizontal;
+  display: flex;
+  flex-direction: row;
+
+  * {
+    font-family: 'Inter', sans-serif;
+    color: color.$primary;
+  }
+
+  &__logo {
+    margin-right: calc($horizontal / 2);
+    min-height: 50px;
+    max-height: 60px;
+  }
+
+  &__complete-logo {
+    @media ($smartphone-and-tablet-size) {
+      display: none;
+    }
+  }
+
+  &__minimal-logo {
+    display: none;
+
+    @media ($smartphone-and-tablet-size) {
+      display: initial;
+    }
+  }
+
+  &__nav {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+    width: 100%;
+  }
+
+  &__btn {
+    padding: 0 0.8rem;
+    height: 100%;
+    background-color: unset;
+    border: unset;
+    font-weight: bold;
+    font-size: medium;
+    letter-spacing: 0.5px;
+
+    &:hover {
+      cursor: pointer;
+    }
+  }
+
+  &__btn-end-align {
+    margin-left: auto;
+
+    & ~ & {
+      // Hack to emulate :first-child
+      margin: 0;
+    }
+  }
+}
