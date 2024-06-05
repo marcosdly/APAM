@@ -8,6 +8,17 @@
 $vertical: 1rem;
 $horizontal: 1.5rem;
 
+:root {
+  --logo-height: 60px;
+  --header-height: calc(var(--logo-height) + #{$vertical} * 2);
+}
+
+@media ($smartphone-and-tablet-size) {
+  :root {
+    --logo-height: 50px;
+  }
+}
+
 .admin-header {
   background-color: color.$secondary;
   width: 100%;
@@ -22,11 +33,10 @@ $horizontal: 1.5rem;
 
   &__logo {
     margin-right: $horizontal;
-    height: 60px;
+    height: var(--logo-height);
     display: block;
 
     @media ($smartphone-and-tablet-size) {
-      height: 50px;
       width: auto;
     }
   }
