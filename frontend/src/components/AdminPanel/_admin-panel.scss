@@ -1,9 +1,16 @@
 @use '../../pages/Admin/colors' as color;
+@use '../../assets/fontes' as font;
 
 @import '../../assets/variables';
 
+@include font.inter;
+
 $base-margin: 2rem;
 $min-margin: 5px;
+
+// Rounded from size on UI reference (1466px). Better than a percentage value
+// if we're gonna assume a monitor bigger than 1080p may be used.
+$max-banner-width: 1440px;
 
 :root {
   --top-margin: calc(#{$base-margin} * 3);
@@ -32,20 +39,59 @@ $min-margin: 5px;
 }
 
 .admin-panel {
-  &__working-area {
-    min-height: 100%;
-    background-color: color.$primary;
+  background-color: color.$primary;
+
+  * {
+    font-family: 'Inter', sans-serif;
+    color: color.$secondary;
   }
 
-  &__content-frame {
-    min-height: var(--useful-form-space);
-    overflow-x: auto;
-    border: solid 2px color.$secondary;
+  &__working-area {
+    min-height: 100%;
     margin: var(--top-margin) $base-margin var(--bottom-margin) $base-margin;
 
     @media ($smartphone-and-tablet-size) {
       margin-left: $min-margin;
       margin-right: $min-margin;
     }
+  }
+
+  &__content-frame {
+    min-height: var(--useful-form-space);
+    overflow-x: auto;
+    border: solid 2px color.$secondary;
+  }
+
+  &__page-title {
+    margin-bottom: 1.5rem;
+    margin-left: 1.5rem;
+    font-size: 2rem;
+    font-weight: bold;
+
+    @media ($smartphone-and-tablet-size) {
+      margin-bottom: 1rem;
+      margin-left: 1rem;
+      font-size: 1.5rem;
+    }
+  }
+
+  &__banner {
+    background-color: color.$secondary;
+    margin-top: 1rem;
+    margin-bottom: $base-margin;
+    margin-right: calc($base-margin * 3);
+    padding: 0.5rem 1rem;
+    border-radius: 0 10px 10px 0;
+    max-width: $max-banner-width;
+
+    @media ($smartphone-and-tablet-size) {
+      margin-right: $base-margin;
+    }
+  }
+
+  &__banner-text {
+    color: color.$primary;
+    font-weight: bold;
+    font-size: 1.2rem;
   }
 }
