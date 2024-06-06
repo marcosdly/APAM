@@ -12,6 +12,15 @@ $min-margin: 5px;
 // if we're gonna assume a monitor bigger than 1080p may be used.
 $max-banner-width: 1440px;
 
+$banner-top-margin: 1rem;
+
+// Negative value to negate the working-area's top margin without having
+// to make it position absolute and add in the current top margin value to
+// the calculation. Making it position absolute would also add complexity
+// to width calculations.
+// (* -1 inverts the signal: positive to negative and vise versa)
+$banner-offset-bottom: calc((var(--top-margin) - #{$banner-top-margin}) * -1);
+
 :root {
   --top-margin: calc(#{$base-margin} * 3);
   --bottom-margin: calc(#{$base-margin} * 1.5);
@@ -77,8 +86,8 @@ $max-banner-width: 1440px;
 
   &__banner {
     background-color: color.$secondary;
-    margin-top: 1rem;
-    margin-bottom: $base-margin;
+    margin-top: $banner-top-margin;
+    margin-bottom: $banner-offset-bottom;
     margin-right: calc($base-margin * 3);
     padding: 0.5rem 1rem;
     border-radius: 0 10px 10px 0;
