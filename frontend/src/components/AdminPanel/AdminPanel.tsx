@@ -1,5 +1,5 @@
 import { SidebarProvider } from '@/hooks/SidebarProvider';
-import { FC, HTMLAttributes } from 'react';
+import { FC, HTMLAttributes, type ReactNode } from 'react';
 import AdminHeader from '../AdminHeader/AdminHeader';
 import { AdminPanelProvider, useAdminPanel } from '@/hooks/AdminPanelProvider';
 
@@ -15,11 +15,28 @@ const Banner: FC<HTMLAttributes<HTMLElement>> = () => {
   );
 };
 
+// TODO: Remove type signatures
 const PageTitle: FC<HTMLAttributes<HTMLHeadingElement>> = () => {
   const { settings } = useAdminPanel();
 
   return !settings.title ? undefined : (
     <h1 className="admin-panel__page-title">{settings.title}</h1>
+  );
+};
+
+const EdgeButtonContainer: FC<unknown> = () => {
+  const { settings } = useAdminPanel();
+
+  const hasAnyValid = (pojo: Record<string, ReactNode>) => {
+    return 'left' in pojo || 'middle' in pojo || 'right' in pojo;
+  };
+
+  return !settings.buttons || !hasAnyValid(settings.buttons) ? undefined : (
+    <div className="admin-panel__edge-btn-container">
+      {settings.buttons!.left}
+      {settings.buttons!.middle}
+      {settings.buttons!.right}
+    </div>
   );
 };
 
@@ -33,6 +50,7 @@ const AdminPanel: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
           <Banner />
           <article className="admin-panel__working-area">
             <PageTitle />
+            <EdgeButtonContainer />
             <main className="admin-panel__content-frame">{children}</main>
           </article>
         </div>

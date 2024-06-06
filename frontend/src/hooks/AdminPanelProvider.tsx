@@ -7,9 +7,16 @@ import {
   useContext,
 } from 'react';
 
+import { EdgeButtonInstance } from '@/components/AdminPanel/EdgeButton';
+
 interface AdminPanelSettings {
   title?: string;
   bannerText?: string;
+  buttons?: {
+    left?: EdgeButtonInstance;
+    middle?: EdgeButtonInstance;
+    right?: EdgeButtonInstance;
+  };
 }
 
 interface AdminPanelAPI {

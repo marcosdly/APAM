@@ -21,6 +21,10 @@ $banner-top-margin: 1rem;
 // (* -1 inverts the signal: positive to negative and vise versa)
 $banner-offset-bottom: calc((var(--top-margin) - #{$banner-top-margin}) * -1);
 
+$edge-button-height: 2rem;
+$edge-button-letter-spacing: 0.3px;
+$edge-button-margin-between: 1rem;
+
 :root {
   --top-margin: calc(#{$base-margin} * 3);
   --bottom-margin: calc(#{$base-margin} * 1.5);
@@ -72,7 +76,7 @@ $banner-offset-bottom: calc((var(--top-margin) - #{$banner-top-margin}) * -1);
   }
 
   &__page-title {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     margin-left: 1.5rem;
     font-size: 2rem;
     font-weight: bold;
@@ -102,5 +106,50 @@ $banner-offset-bottom: calc((var(--top-margin) - #{$banner-top-margin}) * -1);
     color: color.$primary;
     font-weight: bold;
     font-size: 1.2rem;
+  }
+
+  &__edge-btn-container {
+    // Negative margin is more predictable than
+    // positive 'top' property with relative position
+    margin-bottom: calc($edge-button-height / 2 * -1);
+
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
+    padding-right: $edge-button-margin-between;
+  }
+
+  &__edge-btn {
+    min-width: 150px;
+    max-width: 300px;
+    padding: 0 1rem;
+    transition:
+      margin 0.1s ease,
+      padding 0.1s ease;
+    height: $edge-button-height;
+    overflow-x: visible;
+    overflow-y: hidden;
+    font-weight: bold;
+    font-size: 1rem;
+    letter-spacing: $edge-button-letter-spacing;
+    margin-left: $edge-button-margin-between;
+    border-radius: 0.5rem;
+    border: solid 2px color.$secondary;
+    background-color: color.$primary;
+
+    &:hover {
+      border-color: color.$secondary;
+      background-color: color.$secondary;
+      color: color.$primary;
+      cursor: pointer;
+
+      // Dealing with margins not collapsing
+      margin-right: calc($edge-button-margin-between / 2);
+      margin-left: calc($edge-button-margin-between * 1.5);
+    }
+
+    &:active {
+      padding: 0 1.5rem;
+    }
   }
 }
