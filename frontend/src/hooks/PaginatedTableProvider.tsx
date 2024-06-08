@@ -26,7 +26,6 @@ interface LowLevelState {
 
 interface LowLevelMiddleware {
   clearData?: () => void;
-  configTableStructure?: (settings: TableSettings) => void | never;
 }
 
 interface LowLevelAPI {
@@ -37,9 +36,6 @@ interface LowLevelAPI {
 }
 
 interface TableSettings {
-  totalResults?: number;
-
-  /** Amount of headers equals amount of columns. */
   headers?: string[];
 }
 
@@ -162,10 +158,9 @@ const HighLevelAPIWrapper: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
 
   const config = useCallback(
     (settings: TableSettings) => {
-      // May throw an Error. Dev should handle it further in the stack trace.
-      middleware.configTableStructure?.(settings);
+      setState(assign({}, state, settings));
     },
-    [middleware]
+    [state, setState]
   );
 
   return (
