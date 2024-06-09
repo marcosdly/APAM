@@ -5,6 +5,7 @@ frontend_routine() {
   cd ./frontend
   npm run lint:fix
   npm run test
+  npm run test:browser
 }
 
 backend_routine() {

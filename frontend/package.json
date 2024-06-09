@@ -11,8 +11,10 @@
     "format": "prettier --write ./src",
     "preview": "vite preview",
     "test": "jest --config jest.config.js --verbose --bail",
+    "test:browser": "vitest -c browser.vitest.config.ts --run",
     "test:coverage": "npm test --coverage --watchAll --collectCoverageFrom='src/components/**/*.{ts,tsx}'",
-    "prepare": "cd .. && husky"
+    "prepare": "cd .. && husky",
+    "test:server:browser": "vitest -c browser.vitest.config.ts --ui"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -32,6 +34,8 @@
     "@typescript-eslint/eslint-plugin": "^7.7.1",
     "@typescript-eslint/parser": "^7.7.1",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/browser": "^1.6.0",
+    "@vitest/ui": "^1.6.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-config-react-app": "^7.0.1",
@@ -51,6 +55,8 @@
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
     "vite-plugin-eslint": "^1.8.1",
-    "vite-tsconfig-paths": "^4.3.2"
+    "vite-tsconfig-paths": "^4.3.2",
+    "vitest": "^1.6.0",
+    "webdriverio": "^8.38.2"
   }
 }
