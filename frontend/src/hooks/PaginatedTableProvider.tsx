@@ -30,35 +30,25 @@ interface TableSettings {
   headers: string[];
 }
 
-interface DBInit extends TableSettings {
-  name: string;
-  version: number;
-}
-
 // TODO: improve type signatures
 export type RowData = Record<string, string | number>;
 
 interface TableDBState {
-  options: DBInit;
+  name: string;
+  settings: TableSettings;
   isEmpty: boolean;
   isReady: boolean;
 }
 
-interface TableDBAPI extends TableDBState {
+export interface TableDBAPI extends TableDBState {
   /**
    * Can only be called once per PaginatedTableProvider. Database always takes
-   * a fixed minimum amount of time to initialize.
+   * a fixed minimum amount of milliseconds to initialize.
    * @see {@link https://developer.mozilla.org/en-US/docs/Glossary/IndexedDB}
    * @param name Database name
-   * @param version Database version
-   * @param tableSettings Configuration options used by the table component
-   * @returns Database configuration **after** it's creation and initialization
+   * @param settings Configuration options used by the table component
    */
-  setDB: (
-    name: string,
-    version: number,
-    tableSettings: TableSettings
-  ) => Promise<DBInit>;
+  setDB: (name: string, settings: TableSettings) => Promise<void>;
 }
 
 export interface PaginatedTableState {
@@ -130,12 +120,11 @@ const ContextHighLevel = createContext<PaginatedTableAPI>(
 const ContextDatabase = createContext<TableDBAPI>({} as TableDBAPI);
 
 const DatabaseProvider: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
-  const db = useRef<IDBDatabase | undefined>(undefined);
+  const dbName = 'PaginatedTableDB';
   const initLocked = useRef(false);
   const [state, setState] = useState<TableDBState>({
-    options: {
-      name: '',
-      version: 0,
+    name: '',
+    settings: {
       headers: [],
     },
     isEmpty: true,
@@ -143,11 +132,7 @@ const DatabaseProvider: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
   });
 
   const setDB = useCallback(
-    async (
-      name: string,
-      version: number,
-      tableSettings: TableSettings
-    ): Promise<DBInit> => {
+    async (name: string, settings: TableSettings): Promise<void> => {
       if (initLocked.current || state.isReady) {
         initLocked.current = false;
         throw new SyntaxError(
@@ -166,57 +151,59 @@ const DatabaseProvider: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
         );
       }
 
-      if (version <= 0) {
-        initLocked.current = false;
-        throw new TypeError(
-          dbErrorPrefix + 'Database version has to be positive'
-        );
+      let alreadyExists = false;
+      const databases = await indexedDB.databases();
+      for (const info of databases) {
+        if (info.name !== dbName) continue;
+        const request = indexedDB.open(dbName);
+        let locked = true;
+        request.onsuccess = () => (locked = false);
+        while (locked) await new Promise((resolve) => setTimeout(resolve, 20));
+        const db = request.result;
+        alreadyExists = db.objectStoreNames.contains(name);
+        break;
       }
-
-      const dbname = name + '_PaginatedTableDB';
-      let dbVersionConflicting: number;
-      const alreadyExists = (await indexedDB.databases()).some((info) => {
-        if (info.name === dbname) {
-          dbVersionConflicting = info.version!;
-          return true;
-        }
-        return false;
-      });
 
       if (alreadyExists) {
         initLocked.current = false;
         throw new TypeError(
-          dbErrorPrefix +
-            `Database '${name}' of version ${dbVersionConflicting!} already exists`
+          dbErrorPrefix + `Database '${name}' already exists`
         );
       }
 
       setState({
-        options: {
-          name: name,
-          version,
-          ...tableSettings,
-        },
+        name,
+        settings,
         isEmpty: true,
         isReady: false,
       });
 
-      const request = indexedDB.open(dbname, version);
-      request.onsuccess = () => {
-        db.current = request.result;
+      const creationRequest = indexedDB.open(dbName);
+
+      const createObjectStore = (database: IDBDatabase) => {
+        database.createObjectStore(name, {
+          keyPath: 'id',
+          autoIncrement: true,
+        });
         setState(assign({}, state, { isReady: true }));
       };
 
-      // eslint says this is more "production ready" than while(true) so I guess it is
-      for (;;) {
-        // NOTE: Waiting time is referenced in this callback's documentation.
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        if (db.current) break;
-      }
+      const upgradeDatabase = (version: number) => {
+        const request = indexedDB.open(dbName, version + 1);
+        request.onupgradeneeded = () => createObjectStore(request.result);
+        request.onsuccess = () => request.result.close();
+      };
 
-      return state.options;
+      creationRequest.onsuccess = () => {
+        const database = creationRequest.result;
+        database.onclose = () => upgradeDatabase(database.version);
+        database.close();
+      };
+
+      while (!state.isReady)
+        await new Promise((resolve) => setTimeout(resolve, 50));
     },
-    [state, setState, db, initLocked]
+    [state, setState, initLocked]
   );
 
   return (

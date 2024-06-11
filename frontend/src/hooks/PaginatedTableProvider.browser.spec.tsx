@@ -28,9 +28,9 @@ describe('Local database', () => {
     test('Trying to init more than once', () => {
       const Consumer = () => {
         const { db } = useHighLevel();
-        const anydb = db.setDB('anyName', 1, dummyTableSettings);
+        const anydb = db.setDB('anyName', dummyTableSettings);
         expect(anydb).resolves;
-        const differentdb = db.setDB('differentName', 1, dummyTableSettings);
+        const differentdb = db.setDB('differentName', dummyTableSettings);
         expect(differentdb).rejects.toThrow(SyntaxError);
         return <></>;
       };
@@ -45,11 +45,11 @@ describe('Local database', () => {
     test("Trying to init after another's full initialization", () => {
       const Consumer = () => {
         const { db } = useHighLevel();
-        const firstDB = db.setDB('first', 1, dummyTableSettings);
+        const firstDB = db.setDB('first', dummyTableSettings);
         expect(firstDB)
           .resolves.toBe(expect.anything())
           .then(() => {
-            const secondDB = db.setDB('second', 1, dummyTableSettings);
+            const secondDB = db.setDB('second', dummyTableSettings);
             expect(secondDB).rejects.toThrow(SyntaxError);
           });
         return <></>;
@@ -74,7 +74,7 @@ describe('Local database', () => {
 
       const Consumer = () => {
         const { db } = useHighLevel();
-        const initResult = db.setDB(dbname, version, settings);
+        const initResult = db.setDB(dbname, settings);
         expect(initResult).resolves.toEqual(wanted);
         return <></>;
       };
@@ -92,26 +92,9 @@ describe('Local database', () => {
 
       const Consumer = () => {
         const { db } = useHighLevel();
-        const first = db.setDB(empty, 1, dummyTableSettings);
+        const first = db.setDB(empty, dummyTableSettings);
         expect(first).rejects.toThrow(TypeError);
-        const second = db.setDB(blank, 1, dummyTableSettings);
-        expect(second).rejects.toThrow(TypeError);
-        return <></>;
-      };
-
-      act(() => (
-        <Provider>
-          <Consumer />
-        </Provider>
-      ));
-    });
-
-    test('Version number valid', () => {
-      const Consumer = () => {
-        const { db } = useHighLevel();
-        const first = db.setDB('testdb', 0, dummyTableSettings);
-        expect(first).rejects.toThrow(TypeError);
-        const second = db.setDB('testdb', -1, dummyTableSettings);
+        const second = db.setDB(blank, dummyTableSettings);
         expect(second).rejects.toThrow(TypeError);
         return <></>;
       };
@@ -128,14 +111,14 @@ describe('Local database', () => {
 
       const FirstConsumer = () => {
         const { db } = useHighLevel();
-        const request = db.setDB(dbname, 1, dummyTableSettings);
+        const request = db.setDB(dbname, dummyTableSettings);
         expect(request).resolves.toBe(expect.anything());
         return <></>;
       };
 
       const SecondConsumer = () => {
         const { db } = useHighLevel();
-        const request = db.setDB(dbname, 1, dummyTableSettings);
+        const request = db.setDB(dbname, dummyTableSettings);
         expect(request).rejects.toThrow(SyntaxError);
         return <></>;
       };
