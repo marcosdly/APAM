@@ -1,42 +1,22 @@
 import {
   FC,
   HTMLAttributes,
-  RefObject,
   createContext,
   useCallback,
   useContext,
-  useRef,
   useState,
 } from 'react';
+import { DatabaseProvider } from './PaginatedTableDatabaseProvider';
 
 const { assign } = Object;
-
-export const FillingParadigm = {
-  Row: 'Row',
-  Column: 'Column',
-} as const;
-
-export type ParadigmOption = keyof typeof FillingParadigm;
-
-interface LowLevelState {
-  paradigm?: ParadigmOption;
-  isInitialized: RefObject<boolean>;
-  isEmpty: RefObject<boolean>;
-}
 
 interface LowLevelMiddleware {
   clearData?: () => void;
 }
 
 interface LowLevelAPI {
-  state: LowLevelState;
   middleware: LowLevelMiddleware;
-  setState: (state: LowLevelState) => void;
   setMiddleware: (state: LowLevelMiddleware) => void;
-}
-
-interface TableSettings {
-  headers?: string[];
 }
 
 export interface PaginatedTableState {
@@ -44,9 +24,6 @@ export interface PaginatedTableState {
   totalPages: number;
   currentPage: number;
   resultsPerPage: number;
-
-  /** Amount of headers equals amount of columns. */
-  headers: string[];
 }
 
 export interface PaginatedTableAPI {
@@ -57,15 +34,7 @@ export interface PaginatedTableAPI {
   setResultsPerPage: (resultsAmount: number) => void;
   setTotalResults: (resultsAmount: number) => void;
   clear: () => void;
-  config: (settings: TableSettings) => void | never;
-  isInitialized: RefObject<boolean>;
-  isEmpty: RefObject<boolean>;
 }
-
-export const RenderOptions = {
-  NotRender: 'NotRender',
-  Render: 'Render',
-} as const;
 
 export class PageIndexError extends Error {
   constructor(nextIndex: number, numberOfPages: number) {
@@ -89,28 +58,20 @@ const ContextHighLevel = createContext<PaginatedTableAPI>(
 );
 
 const LowLevelAPIWrapper: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
-  const isInitialized = useRef(false);
-  const isEmpty = useRef(true);
-
-  const [state, setState] = useState({
-    isInitialized,
-    isEmpty,
-  } as LowLevelState);
-
   const [middleware, setMiddleware] = useState({} as LowLevelMiddleware);
 
   return (
-    <ContextLowLevel.Provider
-      value={{ state, setState, middleware, setMiddleware }}
-    >
-      <HighLevelAPIWrapper>{children}</HighLevelAPIWrapper>
+    <ContextLowLevel.Provider value={{ middleware, setMiddleware }}>
+      <DatabaseProvider>
+        <HighLevelAPIWrapper>{children}</HighLevelAPIWrapper>
+      </DatabaseProvider>
     </ContextLowLevel.Provider>
   );
 };
 
 const HighLevelAPIWrapper: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
   const [state, setState] = useState({} as PaginatedTableState);
-  const { state: lowLevelState, middleware } = useLowLevel();
+  const { middleware } = useLowLevel();
 
   const nextPage = useCallback((): void | never => {
     const newIndex = state.currentPage + 1;
@@ -156,13 +117,6 @@ const HighLevelAPIWrapper: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
     middleware.clearData?.();
   }, [middleware]);
 
-  const config = useCallback(
-    (settings: TableSettings) => {
-      setState(assign({}, state, settings));
-    },
-    [state, setState]
-  );
-
   return (
     <ContextHighLevel.Provider
       value={{
@@ -173,9 +127,6 @@ const HighLevelAPIWrapper: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
         setResultsPerPage,
         setTotalResults,
         clear,
-        config,
-        isInitialized: lowLevelState.isInitialized,
-        isEmpty: lowLevelState.isEmpty,
       }}
     >
       {children}
