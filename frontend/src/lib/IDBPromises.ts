@@ -150,3 +150,11 @@ export function deleteDatabase(name: string): Promise<void> {
       .catch((err) => reject(err));
   });
 }
+
+// TODO: test
+export function asyncRequest(req: IDBRequest) {
+  return new Promise((resolve, reject) => {
+    req.onerror = reject;
+    req.onsuccess = resolve;
+  });
+}
