@@ -1,10 +1,21 @@
+/**
+ * Important documentation:
+ *  1. https://stackoverflow.com/a/18951181
+ *  2. https://stackoverflow.com/a/18626633
+ *  3. https://developer.mozilla.org/en-US/docs/Web/API/IDBOpenDBRequest/blocked_event
+ *  4. https://developer.mozilla.org/en-US/docs/Web/API/IDBDatabase/versionchange_event
+ */
+
+// TODO: Cover cases for all events
+
+/** */
 export function open(name: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(name);
-    request.onblocked = reject;
     request.onerror = reject;
-    request.onupgradeneeded = () => {};
     request.onsuccess = () => {
+      const db = request.result;
+      db.onversionchange = () => db.close();
       resolve(request.result);
     };
   });
@@ -28,40 +39,32 @@ export function openThenUpgradeWith(
   callback: (db: IDBDatabase) => void
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const opening = indexedDB.open(name);
-    opening.onblocked = reject;
-    opening.onerror = reject;
-    opening.onupgradeneeded = reject;
-    opening.onsuccess = () => {
-      const db = opening.result;
-      const version = db.version;
+    /** To make debugging less painful. Just put breakpoint inside this thing. */
+    indexedDB
+      .databases()
+      .then((dbs) => {
+        for (const info of dbs) if (info.name === name) return info.version;
+      })
+      .then((version) => {
+        const upgrading = indexedDB.open(name, (version || 0) + 1);
+        upgrading.onerror = reject;
 
-      db.onabort = reject;
-      db.onclose = reject;
-      db.onerror = reject;
-      db.onversionchange = reject;
-      db.close();
+        upgrading.onupgradeneeded = () => {
+          const db = upgrading.result;
+          db.onabort = reject;
+          db.onclose = reject;
+          db.onerror = reject;
+          db.onversionchange = () => db.close();
 
-      const upgrading = indexedDB.open(name, version + 1);
-      upgrading.onblocked = reject;
-      upgrading.onerror = reject;
+          callback(db);
+        };
 
-      upgrading.onupgradeneeded = () => {
-        const db = upgrading.result;
-        db.onabort = reject;
-        db.onclose = reject;
-        db.onerror = reject;
-        db.onversionchange = reject;
-
-        callback(db);
-      };
-
-      upgrading.onsuccess = () => {
-        const db = upgrading.result;
-        db.close();
-        resolve();
-      };
-    };
+        upgrading.onsuccess = () => {
+          const db = upgrading.result;
+          db.close();
+          resolve();
+        };
+      });
   });
 }
 
@@ -101,11 +104,12 @@ export function createDatabase(
           throw new SyntaxError(`Database '${name}' already exists`);
 
         const request = indexedDB.open(name);
-        request.onblocked = reject;
         request.onerror = reject;
         request.onupgradeneeded = () => configDatabase?.(request.result);
         request.onsuccess = () => {
-          request.result.close();
+          const db = request.result;
+          db.onversionchange = () => db.close();
+          db.close();
           resolve();
         };
       })
@@ -125,6 +129,10 @@ export function getStores(db: IDBDatabase): string[] {
   return Array.from(db.objectStoreNames);
 }
 
+export async function getDatabaseNames(): Promise<string[]> {
+  return (await indexedDB.databases()).map((info) => info.name!);
+}
+
 export function deleteDatabase(name: string): Promise<void> {
   return new Promise((resolve, reject) => {
     indexedDB
@@ -135,7 +143,6 @@ export function deleteDatabase(name: string): Promise<void> {
           throw new SyntaxError(`Database '${name}' already doesn't exist`);
 
         const request = indexedDB.deleteDatabase(name);
-        request.onblocked = reject;
         request.onerror = reject;
         request.onupgradeneeded = reject;
         request.onsuccess = () => resolve();
