@@ -57,6 +57,22 @@ export default class AsyncUniqueIDB {
     this.lock.release();
   }
 
+  // TODO: test
+  public async withTransaction(
+    store: string,
+    callback: (tran: IDBTransaction) => void | Promise<void>
+  ): Promise<void> {
+    await this.waitRelease();
+    this.lock.acquire();
+    this.checkShutdown();
+    await this.ensureExists();
+    if (this.isClosed) await this.reopen();
+    const transaction = IDBPromises.getFastTransaction(this._instance!, store);
+    if (callback instanceof AsyncFunction) await callback(transaction);
+    else callback(transaction);
+    this.lock.release();
+  }
+
   /**
    * Should be called BEFORE any other operation and not IN THE MIDDLE OF one.
    */
