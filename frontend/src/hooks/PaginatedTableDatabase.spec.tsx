@@ -3,32 +3,35 @@ import 'fake-indexeddb/auto';
 import {
   DatabaseProvider,
   DatabaseState,
+  dbManager,
 } from './PaginatedTableDatabaseProvider';
 import { HTMLAttributes } from 'react';
 import { act, cleanup } from '@testing-library/react';
+import * as IDBPromises from '../lib/IDBPromises';
 
 const defaultProps: HTMLAttributes<HTMLElement> = {};
 
 const internalDatabase = 'PaginatedTableDB';
+const storeName = 'testdb';
+
+const dbExists = () => IDBPromises.hasDatabase(internalDatabase);
+
+const getStores = (): Promise<string[]> =>
+  new Promise((resolve) => {
+    dbManager.withLock((db) => {
+      const stores = IDBPromises.getStores(db);
+      resolve(stores);
+    });
+  });
 
 const dummy = {
   headers: ['first', 'second', 'third', 'fourth'] as string[],
 } as const;
 
-const deleteDatabase = (): Promise<void> =>
-  new Promise((resolve, reject) => {
-    indexedDB.databases().then((dbs) => {
-      if (!dbs.some((info) => info.name === internalDatabase)) {
-        resolve();
-        return;
-      }
-      const request = indexedDB.deleteDatabase(internalDatabase);
-      request.onblocked = reject;
-      request.onupgradeneeded = reject;
-      request.onerror = reject;
-      request.onsuccess = () => resolve();
-    });
-  });
+const deleteDatabase = async () => {
+  await dbManager.close();
+  if (await dbExists()) await IDBPromises.deleteDatabase(internalDatabase);
+};
 
 const useDatabase = async (): Promise<DatabaseProvider> => {
   const db = new DatabaseProvider(defaultProps);
@@ -46,64 +49,24 @@ const useManyDatabases = async (
   return dbs;
 };
 
-const getStores = (): Promise<string[]> =>
-  new Promise((resolve, reject) => {
-    indexedDB.databases().then((dbs) => {
-      const fail = () => reject();
+beforeEach(deleteDatabase);
+beforeEach(cleanup);
 
-      if (!dbs.some((info) => info.name === internalDatabase)) {
-        resolve([]);
-        return;
-      }
-
-      const request = indexedDB.open(internalDatabase);
-      request.onblocked = fail;
-      request.onerror = fail;
-      request.onupgradeneeded = fail;
-
-      request.onsuccess = () => {
-        const db = request.result;
-
-        db.onabort = fail;
-        db.onerror = fail;
-        db.onversionchange = fail;
-        db.onclose = fail;
-
-        const names = Array.from(db.objectStoreNames);
-
-        resolve(names);
-        db.close();
-      };
-    });
-  });
-
-beforeAll(deleteDatabase);
-afterEach(deleteDatabase);
-afterEach(cleanup);
-
-test('Name consistency', () => {
-  const db = new DatabaseProvider(defaultProps);
+test('Name consistency', async () => {
+  const db = await useDatabase();
   expect(db.internalDatabaseName).toEqual(internalDatabase);
 });
 
 describe('Initializing database', () => {
   test('indexedDB database created', async () => {
+    await expect(dbExists()).resolves.toBe(false);
     const db = await useDatabase();
-
-    const getDatabases = async () =>
-      (await indexedDB.databases()).map((info) => info.name);
-
-    const before = await getDatabases();
-    expect(before).not.toContain(internalDatabase);
-
+    await expect(dbExists()).resolves.toBe(false);
     await expect(db.init('testdb', dummy.headers)).resolves.toBeUndefined();
-
-    const after = await getDatabases();
-    expect(after).toContain(internalDatabase);
+    await expect(dbExists()).resolves.toBe(true);
   });
 
   test('Object store created', async () => {
-    const storeName = 'testdb';
     const db = await useDatabase();
     await expect(getStores()).resolves.toHaveLength(0);
     const attempt = db.init(storeName, dummy.headers);
@@ -113,7 +76,6 @@ describe('Initializing database', () => {
 
   test('Object store already exists', async () => {
     const dbs = await useManyDatabases(10);
-    const storeName = 'testdb';
     const successfulDB = dbs[0].init(storeName, dummy.headers);
     await expect(successfulDB).resolves.toBeUndefined();
     for (let i = 1; i < dbs.length; ++i) {
@@ -134,7 +96,7 @@ describe('Initializing database', () => {
     }
 
     const stores = await getStores();
-    expect(stores).toHaveLength(namesUsed.length);
+    expect(stores).toEqual(namesUsed);
 
     const allThere = stores.every((name) => namesUsed.includes(name));
     expect(allThere).toBe(true);
@@ -142,14 +104,12 @@ describe('Initializing database', () => {
 
   test("Assume it's being re-rendered", async () => {
     const db = await useDatabase();
-    const storeName = 'testdb';
-    await expect(db.init(storeName, dummy.headers)).resolves.toBeUndefined();
-    await expect(db.init(storeName, dummy.headers)).resolves.toBeUndefined();
+    for (let i = 0; i < 10; ++i)
+      await expect(db.init(storeName, dummy.headers)).resolves.toBeUndefined();
   });
 
   test('State updated after init', async () => {
     const db = await useDatabase();
-    const storeName = 'testdb';
     await expect(db.init(storeName, dummy.headers)).resolves.toBeUndefined();
     expect(db.state).toStrictEqual({
       name: storeName,
@@ -182,7 +142,6 @@ describe('Initializing database', () => {
 
     test('Same name, different arguments', async () => {
       const db = await useDatabase();
-      const storeName = 'testdb';
       const differentHeaders = Array.from(dummy.headers);
       differentHeaders.reverse();
       await expect(db.init(storeName, dummy.headers)).resolves.toBeUndefined();
