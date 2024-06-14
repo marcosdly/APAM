@@ -13,9 +13,15 @@ export interface DatabaseState {
   columns: number;
 }
 
+export type Row = Record<string, unknown>;
+
+export type Document = { _id: number } & Row;
+
 export interface DatabaseAPI {
   state: DatabaseState;
   init: (name: string, headers: string[]) => Promise<void>;
+  create: (...data: Row[]) => Promise<Document[]>;
+  createOne: (data: Row) => Promise<Document>;
 }
 
 const ContextDatabase = createContext<DatabaseAPI>({} as DatabaseAPI);
@@ -116,12 +122,59 @@ export class DatabaseProvider extends Component<
     this.initLock.release();
   }
 
+  public hasCorrectKeys(data: Row): boolean | never {
+    return this.state.headers.every((key) => key in data);
+  }
+
+  public removeOtherKeys(data: Row): Row {
+    const filteredPairs = Object.entries(data).filter(([key]) =>
+      this.state.headers.includes(key)
+    );
+    return Object.fromEntries(filteredPairs);
+  }
+
+  public async create(...data: Row[]): Promise<Document[]> {
+    if (!this.state.isReady) throw new SyntaxError('Database not yet ready');
+    if (data.length === 0) return [];
+    const added: Document[] = [];
+
+    await dbManager.withTransaction(
+      this.state.name,
+      async (tran: IDBTransaction) => {
+        const store = tran.objectStore(this.state.name);
+        for (const row of data) {
+          if ('_id' in row)
+            throw new TypeError(
+              "The key '_id' is reserved and cannot be used as data"
+            );
+
+          if (!this.hasCorrectKeys(row))
+            throw new TypeError('Invalid structure of provided row data');
+
+          const trimmed = this.removeOtherKeys(row);
+
+          const request = store.add(trimmed);
+          await IDBPromises.asyncRequest(request);
+          added.push({ _id: request.result as number, ...trimmed });
+        }
+      }
+    );
+
+    return added;
+  }
+
+  public async createOne(data: Row): Promise<Document> {
+    return (await this.create(data))?.[0];
+  }
+
   render() {
     return (
       <ContextDatabase.Provider
         value={{
           state: this.state,
           init: this.init,
+          create: this.create,
+          createOne: this.createOne,
         }}
       >
         {this.props.children}

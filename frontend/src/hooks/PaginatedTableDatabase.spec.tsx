@@ -1,8 +1,10 @@
 // Will load fake indexedDB into global scope
 import 'fake-indexeddb/auto';
+import 'core-js/actual/structured-clone';
 import {
   DatabaseProvider,
   DatabaseState,
+  Row,
   dbManager,
 } from './PaginatedTableDatabaseProvider';
 import { HTMLAttributes } from 'react';
@@ -149,5 +151,81 @@ describe('Initializing database', () => {
         SyntaxError
       );
     });
+  });
+});
+
+const generateString = (size?: number) => {
+  const buffer = new Uint8Array(size || 16);
+  crypto.getRandomValues(buffer);
+  return String.fromCodePoint(...buffer);
+};
+
+const generateRow = (): Row => {
+  const keyValuePairs = dummy.headers.map((key) => [key, generateString()]);
+  return Object.fromEntries(keyValuePairs);
+};
+
+const generateManyRows = (amount: number): Row[] => {
+  return Array(amount)
+    .fill(null)
+    .map(() => generateRow());
+};
+
+describe('Adding to the database', () => {
+  test("Empty argument doesn't throw", async () => {
+    const db = await useDatabase();
+    await db.init(storeName, dummy.headers);
+    await expect(db.create()).resolves.toEqual([]);
+    await expect(db.create(...[])).resolves.toEqual([]);
+  });
+
+  test('Database not ready yet', async () => {
+    const db = await useDatabase();
+    const rows = generateManyRows(10);
+    await expect(db.create(...rows)).rejects.toThrow(SyntaxError);
+  });
+
+  test('_id key included in user data', async () => {
+    const db = await useDatabase();
+    const row = generateRow();
+    row._id = generateString();
+
+    await db.init(internalDatabase, dummy.headers);
+    await expect(db.create(row)).rejects.toThrow(TypeError);
+  });
+
+  test('Row data validated', async () => {
+    const db = await useDatabase();
+    await db.init(internalDatabase, dummy.headers);
+    const baseRow = generateRow();
+    for (let i = 0; i < dummy.headers.length; ++i) {
+      const entries = Object.entries(baseRow);
+      // A key that is not among the headers
+      entries[i] = ['differentKey', generateString()];
+      const row = Object.fromEntries(entries);
+      await expect(db.create(row)).rejects.toThrow(TypeError);
+    }
+  });
+
+  test('Excessive keys are discarted', async () => {
+    const db = await useDatabase();
+    await db.init(internalDatabase, dummy.headers);
+    const row = generateRow();
+
+    for (let i = 0; i < 5; ++i) {
+      row[generateString(5)] = generateString();
+    }
+
+    const result = await db.create(row);
+    const totalKeys = dummy.headers.length + 1;
+    expect(Object.keys(result[0])).toHaveLength(totalKeys);
+  });
+
+  test('Many calls accross many providers', async () => {
+    const databases = await useManyDatabases(10);
+    for (let i = 0; i < databases.length; ++i)
+      await databases[i].init(`${storeName}_${i}`, dummy.headers);
+    for (const db of databases)
+      await expect(db.create(generateRow())).resolves.toHaveLength(1);
   });
 });
