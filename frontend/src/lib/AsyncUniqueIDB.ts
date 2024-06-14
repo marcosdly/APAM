@@ -1,5 +1,6 @@
 import SimpleLock from './SimpleLock';
 import * as IDBPromises from './IDBPromises';
+import { AsyncFunction } from './constants';
 
 /**
  * Managed instance of an indexedDB connection. You should not use the
@@ -51,7 +52,7 @@ export default class AsyncUniqueIDB {
     this.checkShutdown();
     await this.ensureExists();
     if (this.isClosed) await this.reopen();
-    if (callback instanceof Promise) await callback(this._instance!);
+    if (callback instanceof AsyncFunction) await callback(this._instance!);
     else callback(this._instance!);
     this.lock.release();
   }
