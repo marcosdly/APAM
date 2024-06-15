@@ -155,6 +155,6 @@ export function deleteDatabase(name: string): Promise<void> {
 export function asyncRequest(req: IDBRequest) {
   return new Promise((resolve, reject) => {
     req.onerror = reject;
-    req.onsuccess = resolve;
+    req.onsuccess = () => resolve(req.result);
   });
 }
