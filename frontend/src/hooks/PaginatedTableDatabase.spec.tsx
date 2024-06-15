@@ -190,13 +190,13 @@ describe('Adding to the database', () => {
     const row = generateRow();
     row._id = generateString();
 
-    await db.init(internalDatabase, dummy.headers);
+    await db.init(storeName, dummy.headers);
     await expect(db.create(row)).rejects.toThrow(TypeError);
   });
 
   test('Row data validated', async () => {
     const db = await useDatabase();
-    await db.init(internalDatabase, dummy.headers);
+    await db.init(storeName, dummy.headers);
     const baseRow = generateRow();
     for (let i = 0; i < dummy.headers.length; ++i) {
       const entries = Object.entries(baseRow);
@@ -209,7 +209,7 @@ describe('Adding to the database', () => {
 
   test('Excessive keys are discarted', async () => {
     const db = await useDatabase();
-    await db.init(internalDatabase, dummy.headers);
+    await db.init(storeName, dummy.headers);
     const row = generateRow();
 
     for (let i = 0; i < 5; ++i) {
@@ -228,4 +228,37 @@ describe('Adding to the database', () => {
     for (const db of databases)
       await expect(db.create(generateRow())).resolves.toHaveLength(1);
   });
+
+  test('Objects are correctly added to database', async () => {
+    const db = await useDatabase();
+    await db.init(storeName, dummy.headers);
+
+    const len = 25;
+    const rows = generateManyRows(len);
+    const totalKeys = dummy.headers.length + 1;
+    const docs = await db.create(...rows);
+
+    expect(docs).toHaveLength(len);
+    expect(docs.every((obj) => '_id' in obj)).toBe(true);
+    expect(
+      docs.every((obj) => {
+        return dummy.headers.every((key) => key in obj);
+      })
+    ).toBe(true);
+    expect(
+      docs.every((obj) => {
+        return Object.keys(obj).length === totalKeys;
+      })
+    ).toBe(true);
+
+    let count: number = 0;
+    await dbManager.withTransaction(storeName, async (tran) => {
+      const store = tran.objectStore(storeName);
+      count = (await IDBPromises.asyncRequest(store.count())) as number;
+    });
+
+    expect(count).toEqual(len);
+  });
+});
+
 });
