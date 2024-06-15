@@ -261,4 +261,38 @@ describe('Adding to the database', () => {
   });
 });
 
+describe('Non-complex utilities', () => {
+  const len = 25;
+  // const totalKeys = dummy.headers.length + 1;
+  const rows = generateManyRows(len);
+
+  test('Get all elements as array of objects', async () => {
+    const db = await useDatabase();
+    await db.init(storeName, dummy.headers);
+    await db.create(...rows);
+    const docs = await db.getAll();
+    expect(docs).toHaveLength(len);
+    for (let i = 0; i < len; ++i) {
+      expect(docs[i]).toMatchObject(rows[i]);
+      expect('_id' in docs[i]).toBe(true);
+      expect(docs[i]._id).toEqual(expect.any(Number));
+      expect(typeof docs[i]._id).toEqual('number'); // double sure
+    }
+  });
+
+  test('Count total amount of objects', async () => {
+    const db = await useDatabase();
+    await db.init(storeName, dummy.headers);
+    await db.create(...rows);
+    await expect(db.count()).resolves.toEqual(len);
+  });
+
+  test('Clear all objects from store', async () => {
+    const db = await useDatabase();
+    await db.init(storeName, dummy.headers);
+    await db.create(...rows);
+    await expect(db.count()).resolves.toEqual(len);
+    await expect(db.clear()).resolves.toEqual(len);
+    await expect(db.count()).resolves.toEqual(0);
+  });
 });

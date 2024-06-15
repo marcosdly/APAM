@@ -22,6 +22,11 @@ export interface DatabaseAPI {
   init: (name: string, headers: string[]) => Promise<void>;
   create: (...data: Row[]) => Promise<Document[]>;
   createOne: (data: Row) => Promise<Document>;
+  /** Deletes all records and returns the number of records deleted */
+  clear: () => Promise<number>;
+  /** Retrieve total number of records in database */
+  count: () => Promise<number>;
+  getAll: () => Promise<Document[]>;
 }
 
 const ContextDatabase = createContext<DatabaseAPI>({} as DatabaseAPI);
@@ -167,6 +172,34 @@ export class DatabaseProvider extends Component<
     return (await this.create(data))?.[0];
   }
 
+  public async clear(): Promise<number> {
+    let count: number;
+    await dbManager.withTransaction(this.state.name, async (tran) => {
+      const store = tran.objectStore(this.state.name);
+      count = (await IDBPromises.asyncRequest(store.count())) as number;
+      await IDBPromises.asyncRequest(store.clear());
+    });
+    return count!;
+  }
+
+  public async count(): Promise<number> {
+    let count: number;
+    await dbManager.withTransaction(this.state.name, async (tran) => {
+      const store = tran.objectStore(this.state.name);
+      count = (await IDBPromises.asyncRequest(store.count())) as number;
+    });
+    return count!;
+  }
+
+  public async getAll(): Promise<Document[]> {
+    let docs: Document[];
+    await dbManager.withTransaction(this.state.name, async (tran) => {
+      const store = tran.objectStore(this.state.name);
+      docs = (await IDBPromises.asyncRequest(store.getAll())) as Document[];
+    });
+    return docs!;
+  }
+
   render() {
     return (
       <ContextDatabase.Provider
@@ -175,6 +208,9 @@ export class DatabaseProvider extends Component<
           init: this.init,
           create: this.create,
           createOne: this.createOne,
+          clear: this.clear,
+          count: this.count,
+          getAll: this.getAll,
         }}
       >
         {this.props.children}
