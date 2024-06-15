@@ -45,12 +45,6 @@ export class PageIndexError extends Error {
   }
 }
 
-export class NonPositiveError extends Error {
-  constructor(value: number) {
-    super(`A numeric value that should be positive isn't. Received ${value}`);
-  }
-}
-
 const ContextLowLevel = createContext<LowLevelAPI>({} as LowLevelAPI);
 
 const ContextHighLevel = createContext<PaginatedTableAPI>(
@@ -99,7 +93,8 @@ const HighLevelAPIWrapper: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
 
   const setTotalResults = useCallback(
     (resultsAmount: number) => {
-      if (resultsAmount < 1) throw new NonPositiveError(resultsAmount);
+      if (resultsAmount < 1)
+        throw new TypeError('Amount of total table results must be positive');
       setState(assign({}, state, { totalResults: resultsAmount }));
     },
     [state, setState]
@@ -107,7 +102,8 @@ const HighLevelAPIWrapper: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
 
   const setResultsPerPage = useCallback(
     (resultsAmount: number) => {
-      if (resultsAmount < 1) throw new NonPositiveError(resultsAmount);
+      if (resultsAmount < 1)
+        throw new TypeError('Amount of results per page must be positive');
       setState(assign({}, state, { resultsPerPage: resultsAmount }));
     },
     [state, setState]
