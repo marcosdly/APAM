@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useReducer,
   useState,
 } from 'react';
 import { DatabaseProvider } from './PaginatedTableDatabaseProvider';
@@ -11,12 +12,20 @@ import { DatabaseProvider } from './PaginatedTableDatabaseProvider';
 const { assign } = Object;
 
 interface LowLevelMiddleware {
-  clearData?: () => void;
+  clearData: () => void;
+  populateData: () => void;
+  triggerUpdate: () => void;
+}
+
+interface LowLevelState {
+  isDataHidden: boolean;
 }
 
 interface LowLevelAPI {
   middleware: LowLevelMiddleware;
-  setMiddleware: (state: LowLevelMiddleware) => void;
+  state: LowLevelState;
+  /** Dummy counter that may trigger React into updating component */
+  forceUpdateEvent: number;
 }
 
 export interface PaginatedTableState {
@@ -33,7 +42,13 @@ export interface PaginatedTableAPI {
   toPage: (pageNumber: number) => void | never;
   setResultsPerPage: (resultsAmount: number) => void;
   setTotalResults: (resultsAmount: number) => void;
+
+  /** Hide table data */
   clear: () => void;
+  /** Show table data */
+  populate: () => void;
+  /** Force table data to update */
+  update: () => void;
 }
 
 export class PageIndexError extends Error {
@@ -52,10 +67,31 @@ const ContextHighLevel = createContext<PaginatedTableAPI>(
 );
 
 const LowLevelAPIWrapper: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
-  const [middleware, setMiddleware] = useState({} as LowLevelMiddleware);
+  const [state, setState] = useState<LowLevelState>({ isDataHidden: false });
+
+  // must allways be truthy
+  const [counter, incrementCounter] = useReducer((x) => ++x, 1);
+
+  const clear = useCallback(() => {
+    if (state.isDataHidden) return;
+    setState(assign({}, state, { isDataHidden: true }));
+  }, [state, setState]);
+
+  const populate = useCallback(() => {
+    if (!state.isDataHidden) return;
+    setState(assign({}, state, { isDataHidden: false }));
+  }, [state, setState]);
+
+  const middleware: LowLevelMiddleware = {
+    clearData: clear,
+    populateData: populate,
+    triggerUpdate: incrementCounter,
+  };
 
   return (
-    <ContextLowLevel.Provider value={{ middleware, setMiddleware }}>
+    <ContextLowLevel.Provider
+      value={{ middleware, state, forceUpdateEvent: counter }}
+    >
       <DatabaseProvider>
         <HighLevelAPIWrapper>{children}</HighLevelAPIWrapper>
       </DatabaseProvider>
@@ -109,10 +145,6 @@ const HighLevelAPIWrapper: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
     [state, setState]
   );
 
-  const clear = useCallback(() => {
-    middleware.clearData?.();
-  }, [middleware]);
-
   return (
     <ContextHighLevel.Provider
       value={{
@@ -122,7 +154,9 @@ const HighLevelAPIWrapper: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
         toPage,
         setResultsPerPage,
         setTotalResults,
-        clear,
+        clear: middleware.clearData,
+        populate: middleware.populateData,
+        update: middleware.triggerUpdate,
       }}
     >
       {children}
