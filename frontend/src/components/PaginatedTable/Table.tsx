@@ -1,5 +1,6 @@
-import { useHighLevel, useLowLevel } from '@/hooks/PaginatedTableProvider';
-import { FC, HTMLAttributes, useCallback, useEffect, useState } from 'react';
+import { useDatabase } from '@/hooks/PaginatedTableDatabaseProvider';
+import { useLowLevel } from '@/hooks/PaginatedTableProvider';
+import { FC, HTMLAttributes, ReactElement } from 'react';
 
 interface TableProps extends HTMLAttributes<HTMLTableElement> {
   /**
@@ -17,103 +18,124 @@ interface TableProps extends HTMLAttributes<HTMLTableElement> {
   showTableFooter?: boolean;
 }
 
-interface CellProps {
+interface TextContent {
   text?: string;
 }
 
-interface RowRendererProps {
-  data: RowData[];
+/** Converts data to an user-expected, user-readable format */
+function readable(data: unknown): string {
+  // TODO: trim number's decimal places
+  // TODO: convert Date objects or date strings to Brazillian format
+  // TODO: unicode normalization
+  // TODO: convertion error text on error
+  // TODO: (maybe?) arrays to readable plain text lists
+  // TODO: (maybe?) objects to readable plai text ordered lists
+  return String(data);
 }
 
-type RowData = Record<string, string>;
-
-const Header: FC<CellProps> = ({ text }) => (
-  <th className="header" scope="col">
-    {text}
-  </th>
-);
-
-const Cell: FC<CellProps> = ({ text }) => <td className="cell">{text}</td>;
-
-const HeaderRow: FC<TableProps> = ({ placeholderColumns }) => {
-  const { state } = useHighLevel();
-
-  return (
-    <tr>
-      {!state.headers || state.headers.length === 0
-        ? Array(placeholderColumns || 3).fill(<Header />)
-        : state.headers.map((text, i) => <Header key={i} text={text} />)}
-    </tr>
-  );
-};
-
-const TableBody: FC<TableProps & RowRendererProps> = ({
-  data,
-  placeholderRows,
-}) => {
-  const { state } = useHighLevel();
-  let placeholders, rows;
-
-  if (data.length === 0) {
-    placeholders = Array(placeholderRows || 10).fill(
-      <tr>{state.headers?.map((_, i) => <Cell key={i} />)}</tr>
-    );
-  }
-
-  if (data.length > 0 && state.headers) {
-    rows = data.map((rowdata, i) => {
-      const cells = state.headers.map((header, j) => (
-        <Cell key={j} text={rowdata[header]} />
-      ));
-
-      return <tr key={i}>{cells}</tr>;
-    });
-  }
-
-  return <tbody>{rows ? rows : placeholders}</tbody>;
-};
-
 const Table: FC<TableProps> = (props) => {
-  const { setMiddleware } = useLowLevel();
-  const { config } = useHighLevel();
-  const [data, setData] = useState<RowData[]>([]);
+  const placeholderColumns = props.placeholderColumns || 4,
+    placeholderRows = props.placeholderRows || 10;
 
-  const clear = useCallback(() => setData([]), [setData]);
+  const db = useDatabase();
+  const low = useLowLevel();
 
-  const declareMiddleware = useCallback(() => {
-    setMiddleware({ clearData: clear });
-  }, [setMiddleware, clear]);
+  // TODO: add option to sort data
+  // TODO: add global unique number generator (uuid npm package?)
 
-  const declareConfig = () => {
-    config({
-      headers: ['eu', 'sei', 'la', 'bicho'],
-    });
+  const HeaderCell: FC<TextContent> = ({ text }) => (
+    <th className="table-header-cell" scope="col">
+      {text}
+    </th>
+  );
+
+  const Cell: FC<TextContent> = ({ text }) => (
+    <td className="table-cell">{text}</td>
+  );
+
+  const TableRow: FC<HTMLAttributes<HTMLElement>> = ({ children }) => (
+    <tr className="table-row">{children}</tr>
+  );
+
+  const HeaderRow: FC = () => {
+    let cells: ReactElement[] = [];
+
+    if (!db.state.isReady || db.state.headers.length === 0) {
+      // placeholder cells
+      cells = Array(placeholderColumns)
+        .fill(null)
+        .map(() => <HeaderCell key={crypto.randomUUID()} />);
+    } else {
+      cells = db.state.headers.map((header) => (
+        <HeaderCell key={crypto.randomUUID()} text={header} />
+      ));
+    }
+
+    return <TableRow>{cells}</TableRow>;
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(declareMiddleware, []);
+  const makePlaceholders = (): ReactElement[] => {
+    const cells = Array(placeholderColumns)
+      .fill(null)
+      .map(() => <Cell key={crypto.randomUUID()} />);
+    const rows = Array(placeholderRows)
+      .fill(null)
+      .map(() => <TableRow key={crypto.randomUUID()}>{cells}</TableRow>);
+    return rows;
+  };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(declareConfig, []);
+  const makeCells = async (): Promise<ReactElement[]> => {
+    // TODO: query data more efficiently
+    // TODO: sort data
+    const data = await db.getAll();
 
-  let footer;
+    const rows = data.map((doc) => {
+      const cells = db.state.headers.map((header) => {
+        return <Cell key={crypto.randomUUID()} text={readable(doc[header])} />;
+      });
+
+      return <TableRow key={crypto.randomUUID()}>{cells}</TableRow>;
+    });
+
+    return rows;
+  };
+
+  const TableBody: FC = () => {
+    return (
+      <>
+        {!db.state.isReady || db.state.isEmpty || low.state.isDataHidden
+          ? makePlaceholders()
+          : makeCells()}
+      </>
+    );
+  };
+
+  let footer: ReactElement | undefined;
   if (props.showTableFooter) {
     footer = (
-      <tfoot className="footer">
-        <HeaderRow {...props} />
+      <tfoot className="table-footer">
+        <HeaderRow />
       </tfoot>
     );
   }
 
-  return (
-    <table>
-      <thead className="header">
-        <HeaderRow {...props} />
-      </thead>
-      <TableBody data={data} {...props} />
+  const header = (
+    <thead className="table-header">
+      <HeaderRow />
+    </thead>
+  );
+
+  const table = (
+    <table className="paginated-table">
+      {header}
+      <tbody className="table-body">
+        <TableBody />
+      </tbody>
       {footer}
     </table>
   );
+
+  return <>{low.forceUpdateEvent && table}</>;
 };
 
 export default Table;
