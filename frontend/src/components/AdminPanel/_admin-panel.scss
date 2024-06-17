@@ -54,6 +54,10 @@
     min-height: var(--useful-form-space);
     overflow-x: auto;
     border: solid 2px color.$secondary;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: 0.5rem;
+    padding-top: calc(#{$edge-button-height} / 2 + 0.5rem);
   }
 
   &__page-title {
