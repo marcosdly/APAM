@@ -21,3 +21,19 @@
     color: color.$secondary;
   }
 }
+
+.table-result-counter {
+  display: inline-block;
+  padding: 0.2rem;
+
+  .text {
+    font-weight: normal;
+    font-size: 0.9rem;
+    color: color.$secondary;
+    line-height: 1;
+  }
+
+  .number {
+    font-weight: bold;
+  }
+}
