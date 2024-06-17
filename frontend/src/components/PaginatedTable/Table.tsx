@@ -22,6 +22,10 @@ interface TextContent {
   text?: string;
 }
 
+interface Placeholder {
+  placeholder?: boolean;
+}
+
 /** Converts data to an user-expected, user-readable format */
 function readable(data: unknown): string {
   // TODO: trim number's decimal places
@@ -43,14 +47,17 @@ const Table: FC<TableProps> = (props) => {
   // TODO: add option to sort data
   // TODO: add global unique number generator (uuid npm package?)
 
-  const HeaderCell: FC<TextContent> = ({ text }) => (
-    <th className="table-header-cell" scope="col">
+  const HeaderCell: FC<TextContent & Placeholder> = ({ text, placeholder }) => (
+    <th
+      className={`table-header-cell ${placeholder ? 'placeholder' : ''}`}
+      scope="col"
+    >
       {text}
     </th>
   );
 
-  const Cell: FC<TextContent> = ({ text }) => (
-    <td className="table-cell">{text}</td>
+  const Cell: FC<TextContent & Placeholder> = ({ text, placeholder }) => (
+    <td className={`table-cell ${placeholder ? 'placeholder' : ''}`}>{text}</td>
   );
 
   const TableRow: FC<HTMLAttributes<HTMLElement>> = ({ children }) => (

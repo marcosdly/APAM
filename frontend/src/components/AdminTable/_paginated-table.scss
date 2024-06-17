@@ -1,0 +1,23 @@
+@use '../../pages/Admin/colors' as color;
+
+.paginated-table {
+  .table-cell::after,
+  .table-header-cell::after {
+    content: 'Placeholder';
+  }
+
+  .table-cell,
+  .table-header-cell {
+    padding: 0.5rem;
+    letter-spacing: 0.5px;
+  }
+
+  .table-cell {
+    color: color.$text;
+  }
+
+  .table-header-cell {
+    font-weight: bold;
+    color: color.$secondary;
+  }
+}
