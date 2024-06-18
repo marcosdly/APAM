@@ -58,6 +58,7 @@
     padding-right: 1rem;
     padding-bottom: 0.5rem;
     padding-top: calc(#{$edge-button-height} / 2 + 0.5rem);
+    display: flex;
   }
 
   &__page-title {
