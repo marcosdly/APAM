@@ -2,13 +2,13 @@ import { FC, useId } from 'react';
 
 import './_box.scss';
 
-interface BoxProps {
+interface TickBoxProps {
   label: string;
   type: 'radio' | 'checkbox';
   groupId: string;
 }
 
-const Box: FC<BoxProps> = ({ label, type, groupId }) => {
+const TickBox: FC<TickBoxProps> = ({ label, type, groupId }) => {
   const id = useId();
   return (
     <div className="admin-input__clickable-box">
@@ -26,4 +26,4 @@ const Box: FC<BoxProps> = ({ label, type, groupId }) => {
   );
 };
 
-export default Box;
+export default TickBox;

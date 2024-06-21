@@ -1,7 +1,7 @@
 import { FC, useId } from 'react';
-import Box from '../Box/Box';
-import BoxGroup from '../Box/BoxGroup';
-import Title from '../Title/Title';
+import TickBox from '../Shared/TickBox/TickBox';
+import TickBoxGroup from '../Shared/TickBox/TickBoxGroup';
+import Title from '../Shared/Title/Title';
 
 interface CheckboxProps {
   options: string[];
@@ -14,16 +14,16 @@ const Checkbox: FC<CheckboxProps> = ({ options, title, required }) => {
   return (
     <div className="admin-input__checkbox">
       <Title text={title} required={required} />
-      <BoxGroup>
+      <TickBoxGroup>
         {options.map((label) => (
-          <Box
+          <TickBox
             key={crypto.randomUUID()}
             type="checkbox"
             label={label}
             groupId={groupId}
           />
         ))}
-      </BoxGroup>
+      </TickBoxGroup>
     </div>
   );
 };
