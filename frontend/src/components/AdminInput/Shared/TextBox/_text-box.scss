@@ -1,5 +1,7 @@
 @use '../../../../pages/Admin/colors' as color;
 
+@import './options';
+
 .admin-input {
   &__simple-text-box,
   &__long-text-box {
