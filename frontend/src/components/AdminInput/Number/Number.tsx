@@ -36,13 +36,11 @@ const Number: FC<NumberProps> = ({
     if (!float) {
       try {
         const num = window.Number(elem.value);
-        if (!num || num <= 0) {
-          elem.value = '';
-          return;
-        }
+        if (!num || num <= 0) elem.value = '';
       } catch {
         elem.value = '';
       }
+      return;
     }
 
     // backwards typing effect for floating point numbers
