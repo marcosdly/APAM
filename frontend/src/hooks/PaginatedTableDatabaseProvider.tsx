@@ -205,12 +205,12 @@ export class DatabaseProvider extends Component<
       <ContextDatabase.Provider
         value={{
           state: this.state,
-          init: this.init,
-          create: this.create,
-          createOne: this.createOne,
-          clear: this.clear,
-          count: this.count,
-          getAll: this.getAll,
+          init: (name, headers) => this.init(name, headers),
+          create: (...data) => this.create(...data),
+          createOne: (data) => this.createOne(data),
+          clear: () => this.clear(),
+          count: () => this.count(),
+          getAll: () => this.getAll(),
         }}
       >
         {this.props.children}
