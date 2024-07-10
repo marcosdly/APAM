@@ -1,171 +1,170 @@
+import { openDB, IDBPDatabase } from 'idb';
 import {
+  createContext,
   FC,
   HTMLAttributes,
-  createContext,
-  useCallback,
   useContext,
-  useReducer,
+  useEffect,
+  useMemo,
+  useRef,
   useState,
 } from 'react';
-import { DatabaseProvider } from './PaginatedTableDatabaseProvider';
 
 const { assign } = Object;
 
-interface LowLevelMiddleware {
-  clearData: () => void;
-  populateData: () => void;
-  triggerUpdate: () => void;
-}
-
-interface LowLevelState {
-  isDataHidden: boolean;
-}
-
-interface LowLevelAPI {
-  middleware: LowLevelMiddleware;
-  state: LowLevelState;
-  /** Dummy counter that may trigger React into updating component */
-  forceUpdateEvent: number;
-}
+export const databaseName = 'PaginatedTableDB';
 
 export interface PaginatedTableState {
-  totalResults: number;
-  totalPages: number;
+  storeName: string;
+  db: IDBPDatabase | undefined;
+  headers: string[];
   currentPage: number;
+  totalPages: number;
+  totalResults: number;
   resultsPerPage: number;
+  /** miliseconds */
+  updateDelay: number;
+  /** timestamp */
+  lastUpdate: number;
 }
 
-export interface PaginatedTableAPI {
-  state: PaginatedTableState;
-  nextPage: () => void | never;
-  previousPage: () => void | never;
-  toPage: (pageNumber: number) => void | never;
-  setResultsPerPage: (resultsAmount: number) => void;
-  setTotalResults: (resultsAmount: number) => void;
-
-  /** Hide table data */
-  clear: () => void;
-  /** Show table data */
-  populate: () => void;
-  /** Force table data to update */
-  update: () => void;
+export interface PaginatedTableMehods {
+  previousPage: () => void;
+  nextPage: () => void;
+  toPage: (page: number) => void;
+  setResultsPerPage: (amount: number) => void;
 }
 
-export class PageIndexError extends Error {
-  constructor(nextIndex: number, numberOfPages: number) {
-    let specifier: string = '';
-    if (nextIndex < 1) specifier = 'Too low.';
-    else if (nextIndex > numberOfPages) specifier = 'Too high.';
-    super(`Cannot switch to page ${nextIndex}. ${specifier}`.trimEnd());
-  }
+export type PaginatedTableAPI = PaginatedTableMehods & PaginatedTableState;
+
+interface PaginatedTableProviderProps extends HTMLAttributes<HTMLElement> {
+  storeName: string;
+  headers: string[];
+  /** Delay in miliseconds to wait before updating state */
+  updateDelay?: number;
 }
 
-const ContextLowLevel = createContext<LowLevelAPI>({} as LowLevelAPI);
+function setupStore(db: IDBPDatabase, storeName: string, headers: string[]) {
+  const store = db.createObjectStore(storeName, {
+    keyPath: '_id',
+    autoIncrement: true,
+  });
+  for (const key of headers) store.createIndex(key, key);
+}
 
-const ContextHighLevel = createContext<PaginatedTableAPI>(
-  {} as PaginatedTableAPI
-);
+const PaginatedTableContext = createContext({} as PaginatedTableAPI);
 
-const LowLevelAPIWrapper: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
-  const [state, setState] = useState<LowLevelState>({ isDataHidden: false });
+export const PaginatedTableProvider: FC<PaginatedTableProviderProps> = ({
+  children,
+  headers,
+  updateDelay,
+  storeName,
+}) => {
+  const delay = updateDelay || 30_000;
+  const updateRoutineStarted = useRef<boolean>(false);
 
-  // must allways be truthy
-  const [counter, incrementCounter] = useReducer((x) => ++x, 1);
+  const [state, setState] = useState({
+    storeName,
+    headers: headers || [],
+    currentPage: 1,
+    totalPages: 1,
+    totalResults: 1,
+    resultsPerPage: 10,
+    updateDelay: delay,
+    lastUpdate: Date.now().valueOf(),
+  } as PaginatedTableState);
 
-  const clear = useCallback(() => {
-    if (state.isDataHidden) return;
-    setState(assign({}, state, { isDataHidden: true }));
-  }, [state, setState]);
+  const createDatabase = async () => {
+    const databases = await indexedDB.databases();
+    const alreadyExists = databases.some((info) => info.name === databaseName);
+    if (!alreadyExists) {
+      await openDB(databaseName, 0);
+    }
+    let database = await openDB(databaseName);
+    if (!database.objectStoreNames.contains(storeName)) {
+      const version = database.version;
+      database = await openDB(databaseName, version + 1, {
+        upgrade(db) {
+          setupStore(db, storeName, state.headers);
+        },
+      });
+    }
+    setState(assign({}, state, { db: database }));
+  };
 
-  const populate = useCallback(() => {
-    if (!state.isDataHidden) return;
-    setState(assign({}, state, { isDataHidden: false }));
-  }, [state, setState]);
+  useEffect(
+    () => {
+      createDatabase();
+    },
+    // eslint-disable-next-line
+    []
+  );
 
-  const middleware: LowLevelMiddleware = {
-    clearData: clear,
-    populateData: populate,
-    triggerUpdate: incrementCounter,
+  useMemo(() => {
+    (async () => {
+      if (!state.db || updateRoutineStarted.current) return;
+      updateRoutineStarted.current = true;
+      for (;;) {
+        const count = await state.db.count(storeName);
+        const redacted: Partial<PaginatedTableState> = {
+          totalResults: count,
+          totalPages: Math.ceil(count / state.resultsPerPage),
+          lastUpdate: Date.now().valueOf(),
+        };
+        setState(assign({}, state, redacted));
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    })();
+  }, [delay, state, storeName]);
+
+  const toPage = (page: number) => {
+    const redacted: Partial<PaginatedTableState> = { currentPage: 1 };
+    if (page < 1 || page > state.totalPages) {
+      console.error(
+        `Page ${page} doesn't exist. Must be 1 <= x <= ${state.totalPages}`
+      );
+      return;
+    } else {
+      redacted.currentPage = page;
+    }
+    setState(assign({}, state, redacted));
+  };
+
+  const previousPage = () => {
+    if (state.currentPage === 1) {
+      console.error(
+        'Already on page 1. Cannot go to a page number further back.'
+      );
+      return;
+    }
+    setState(assign({}, state, { currentPage: state.currentPage - 1 }));
+  };
+
+  const nextPage = () => {
+    if (state.currentPage === state.totalPages) {
+      console.error(
+        `Already on page ${state.totalPages}. Cannot go to a page further ahead.`
+      );
+      return;
+    }
+    setState(assign({}, state, { currentPage: state.currentPage + 1 }));
+  };
+
+  const setResultsPerPage = (amount: number) => {
+    if (amount < 10) {
+      console.error('Amount of results per page has to be at least 10');
+      return;
+    }
+    setState(assign({}, state, { resultsPerPage: amount }));
   };
 
   return (
-    <ContextLowLevel.Provider
-      value={{ middleware, state, forceUpdateEvent: counter }}
-    >
-      <DatabaseProvider>
-        <HighLevelAPIWrapper>{children}</HighLevelAPIWrapper>
-      </DatabaseProvider>
-    </ContextLowLevel.Provider>
-  );
-};
-
-const HighLevelAPIWrapper: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
-  const [state, setState] = useState({} as PaginatedTableState);
-  const { middleware } = useLowLevel();
-
-  const nextPage = useCallback((): void | never => {
-    const newIndex = state.currentPage + 1;
-    if (newIndex > state.totalPages)
-      throw new PageIndexError(newIndex, state.totalPages);
-    setState(assign({}, state, { currentPage: newIndex }));
-  }, [state, setState]);
-
-  const previousPage = useCallback((): void | never => {
-    const newIndex = state.currentPage - 1;
-    if (newIndex < 1) throw new PageIndexError(newIndex, state.totalPages);
-    setState(assign({}, state, { currentPage: newIndex }));
-  }, [state, setState]);
-
-  const toPage = useCallback(
-    (pageNumber: number): void | never => {
-      if (pageNumber < 1)
-        throw new PageIndexError(pageNumber, state.totalPages);
-      if (pageNumber > state.totalPages)
-        throw new PageIndexError(pageNumber, state.totalPages);
-      setState(assign({}, state, { currentPage: pageNumber }));
-    },
-    [state, setState]
-  );
-
-  const setTotalResults = useCallback(
-    (resultsAmount: number) => {
-      if (resultsAmount < 1)
-        throw new TypeError('Amount of total table results must be positive');
-      setState(assign({}, state, { totalResults: resultsAmount }));
-    },
-    [state, setState]
-  );
-
-  const setResultsPerPage = useCallback(
-    (resultsAmount: number) => {
-      if (resultsAmount < 1)
-        throw new TypeError('Amount of results per page must be positive');
-      setState(assign({}, state, { resultsPerPage: resultsAmount }));
-    },
-    [state, setState]
-  );
-
-  return (
-    <ContextHighLevel.Provider
-      value={{
-        state,
-        nextPage,
-        previousPage,
-        toPage,
-        setResultsPerPage,
-        setTotalResults,
-        clear: middleware.clearData,
-        populate: middleware.populateData,
-        update: middleware.triggerUpdate,
-      }}
+    <PaginatedTableContext.Provider
+      value={{ ...state, toPage, previousPage, nextPage, setResultsPerPage }}
     >
       {children}
-    </ContextHighLevel.Provider>
+    </PaginatedTableContext.Provider>
   );
 };
 
-export const useLowLevel = () => useContext(ContextLowLevel);
-
-export const useHighLevel = () => useContext(ContextHighLevel);
-
-export const Provider = LowLevelAPIWrapper;
+export const usePaginatedTable = () => useContext(PaginatedTableContext);
