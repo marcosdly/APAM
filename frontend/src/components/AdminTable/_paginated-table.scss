@@ -4,11 +4,6 @@ $active-page-circle-diameter: 5px;
 $jump-button-spacing: 0.5rem;
 
 .paginated-table {
-  .table-cell::after,
-  .table-header-cell::after {
-    content: 'Placeholder';
-  }
-
   .table-cell,
   .table-header-cell {
     padding: 0.5rem;
