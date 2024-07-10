@@ -1,6 +1,12 @@
-import { useDatabase } from '@/hooks/PaginatedTableDatabaseProvider';
-import { useLowLevel } from '@/hooks/PaginatedTableProvider';
-import { FC, HTMLAttributes, ReactElement } from 'react';
+import {
+  FC,
+  HTMLAttributes,
+  ReactElement,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { usePaginatedTable } from '@/hooks/PaginatedTableProvider';
 
 interface TableProps extends HTMLAttributes<HTMLTableElement> {
   /**
@@ -37,85 +43,89 @@ function readable(data: unknown): string {
   return String(data);
 }
 
+const HeaderCell: FC<TextContent & Placeholder> = ({ text, placeholder }) => (
+  <th className={`table-header-cell`} scope="col">
+    {placeholder && !text ? 'Placeholder' : text}
+  </th>
+);
+
+const Cell: FC<TextContent & Placeholder> = ({ text, placeholder }) => (
+  <td className={`table-cell`}>
+    {placeholder && !text ? 'Placeholder' : text}
+  </td>
+);
+
+const TableRow: FC<HTMLAttributes<HTMLElement>> = ({ children }) => (
+  <tr className="table-row">{children}</tr>
+);
+
+const HeaderRow: FC<Partial<TableProps>> = ({ placeholderColumns }) => {
+  let cells: ReactElement[] = [];
+  const table = usePaginatedTable();
+
+  if (!table.headers.length) {
+    // placeholder cells
+    cells = Array(placeholderColumns)
+      .fill(null)
+      .map(() => <HeaderCell key={crypto.randomUUID()} />);
+  } else {
+    cells = table.headers.map((header) => (
+      <HeaderCell key={crypto.randomUUID()} text={header} />
+    ));
+  }
+
+  return <TableRow>{cells}</TableRow>;
+};
+
+const TableBody: FC<unknown> = () => {
+  const table = usePaginatedTable();
+  const [cells, setCells] = useState<ReactElement[]>([]);
+  const locked = useRef<boolean>(false);
+
+  useMemo(() => {
+    (async () => {
+      if (locked.current) return;
+      locked.current = true;
+
+      let rows = [];
+      if (table.db) {
+        const lowerbound =
+          table.currentPage === 1
+            ? 1
+            : table.resultsPerPage * (table.currentPage - 1);
+        const upperbound = lowerbound + table.resultsPerPage;
+        rows = await table.db.getAll(
+          table.storeName,
+          IDBKeyRange.bound(lowerbound, upperbound)
+        );
+      }
+
+      const tempCells = [];
+      for (let i = 0; i < table.resultsPerPage; ++i) {
+        const data = rows[i];
+        tempCells.push(
+          <TableRow key={crypto.randomUUID()}>
+            {table.headers.map((header) => (
+              <Cell
+                key={crypto.randomUUID()}
+                text={data ? readable(data[header]) : undefined}
+              />
+            ))}
+          </TableRow>
+        );
+      }
+
+      setCells(tempCells);
+      locked.current = false;
+    })();
+  }, [table]);
+
+  return <>{cells}</>;
+};
+
 const Table: FC<TableProps> = (props) => {
-  const placeholderColumns = props.placeholderColumns || 4,
-    placeholderRows = props.placeholderRows || 10;
-
-  const db = useDatabase();
-  const low = useLowLevel();
-
   // TODO: add option to sort data
   // TODO: add global unique number generator (uuid npm package?)
-
-  const HeaderCell: FC<TextContent & Placeholder> = ({ text, placeholder }) => (
-    <th
-      className={`table-header-cell ${placeholder ? 'placeholder' : ''}`}
-      scope="col"
-    >
-      {text}
-    </th>
-  );
-
-  const Cell: FC<TextContent & Placeholder> = ({ text, placeholder }) => (
-    <td className={`table-cell ${placeholder ? 'placeholder' : ''}`}>{text}</td>
-  );
-
-  const TableRow: FC<HTMLAttributes<HTMLElement>> = ({ children }) => (
-    <tr className="table-row">{children}</tr>
-  );
-
-  const HeaderRow: FC = () => {
-    let cells: ReactElement[] = [];
-
-    if (!db.state.isReady || db.state.headers.length === 0) {
-      // placeholder cells
-      cells = Array(placeholderColumns)
-        .fill(null)
-        .map(() => <HeaderCell key={crypto.randomUUID()} />);
-    } else {
-      cells = db.state.headers.map((header) => (
-        <HeaderCell key={crypto.randomUUID()} text={header} />
-      ));
-    }
-
-    return <TableRow>{cells}</TableRow>;
-  };
-
-  const makePlaceholders = (): ReactElement[] => {
-    const cells = Array(placeholderColumns)
-      .fill(null)
-      .map(() => <Cell key={crypto.randomUUID()} />);
-    const rows = Array(placeholderRows)
-      .fill(null)
-      .map(() => <TableRow key={crypto.randomUUID()}>{cells}</TableRow>);
-    return rows;
-  };
-
-  const makeCells = async (): Promise<ReactElement[]> => {
-    // TODO: query data more efficiently
-    // TODO: sort data
-    const data = await db.getAll();
-
-    const rows = data.map((doc) => {
-      const cells = db.state.headers.map((header) => {
-        return <Cell key={crypto.randomUUID()} text={readable(doc[header])} />;
-      });
-
-      return <TableRow key={crypto.randomUUID()}>{cells}</TableRow>;
-    });
-
-    return rows;
-  };
-
-  const TableBody: FC = () => {
-    return (
-      <>
-        {!db.state.isReady || db.state.isEmpty || low.state.isDataHidden
-          ? makePlaceholders()
-          : makeCells()}
-      </>
-    );
-  };
 
   let footer: ReactElement | undefined;
   if (props.showTableFooter) {
@@ -126,23 +136,17 @@ const Table: FC<TableProps> = (props) => {
     );
   }
 
-  const header = (
-    <thead className="table-header">
-      <HeaderRow />
-    </thead>
-  );
-
-  const table = (
+  return (
     <table className="paginated-table">
-      {header}
+      <thead className="table-header">
+        <HeaderRow />
+      </thead>
       <tbody className="table-body">
         <TableBody />
       </tbody>
       {footer}
     </table>
   );
-
-  return <>{low.forceUpdateEvent && table}</>;
 };
 
 export default Table;

@@ -1,6 +1,5 @@
-import { useDatabase } from '@/hooks/PaginatedTableDatabaseProvider';
-import { useHighLevel } from '@/hooks/PaginatedTableProvider';
-import { FC, ReactElement, useEffect, useState } from 'react';
+import { usePaginatedTable } from '@/hooks/PaginatedTableProvider';
+import { FC, ReactElement } from 'react';
 
 interface PageSelector {
   /** Amount of visible, clickable, page numbers. Has to be odd! */
@@ -13,8 +12,8 @@ interface PageButton {
 }
 
 const PageSelector: FC<PageSelector> = ({ visible }) => {
-  const { state, toPage, nextPage, previousPage } = useHighLevel();
-  const db = useDatabase();
+  const { toPage, previousPage, nextPage, currentPage, totalPages } =
+    usePaginatedTable();
 
   if (visible && visible % 2 !== 1)
     throw new TypeError('Amount of visible pages has to be an odd integer');
@@ -29,42 +28,11 @@ const PageSelector: FC<PageSelector> = ({ visible }) => {
   /** Offset that determines which numbers will be rendered */
   const buttonRenderOffset = Math.floor(visiblePages / 2);
 
-  /** Necessary data to display component properly is set */
-  const [isReady, setIsReady] = useState<boolean>(false);
-  /** Cached current page */
-  const [selected, setSelected] = useState<number>(1);
-  /** Cached total number of pages */
-  const [total, setTotal] = useState<number>(visiblePages);
-
-  useEffect(() => {
-    setIsReady(db.state.isReady && Boolean(state.totalPages));
-
-    if (!isReady || !state.totalPages) setTotal(visiblePages);
-    else setTotal(state.totalPages);
-
-    if (isReady || state.currentPage) setSelected(state.currentPage);
-  }, [
-    db.state.isReady,
-    isReady,
-    setIsReady,
-    setSelected,
-    setTotal,
-    state.currentPage,
-    state.totalPages,
-    visiblePages,
-  ]);
-
-  /** Current page is in permitted range to page to change */
-  const inRange = selected >= 1 && selected <= total;
-
   const tolast = (
     <button
       type="button"
-      disabled={selected >= total}
-      onClick={() => {
-        if (isReady) toPage(total);
-        else setSelected(total);
-      }}
+      disabled={currentPage >= totalPages}
+      onClick={() => toPage(totalPages)}
       className="jump-button to-last"
     >
       {'>>'}
@@ -74,11 +42,8 @@ const PageSelector: FC<PageSelector> = ({ visible }) => {
   const tofirst = (
     <button
       type="button"
-      disabled={selected <= 1}
-      onClick={() => {
-        if (isReady) toPage(1);
-        else setSelected(1);
-      }}
+      disabled={currentPage <= 1}
+      onClick={() => toPage(1)}
       className="jump-button to-first"
     >
       {'<<'}
@@ -88,11 +53,8 @@ const PageSelector: FC<PageSelector> = ({ visible }) => {
   const next = (
     <button
       type="button"
-      disabled={selected >= total}
-      onClick={() => {
-        if (isReady) nextPage();
-        else if (inRange) setSelected(selected + 1);
-      }}
+      disabled={currentPage >= totalPages}
+      onClick={() => nextPage()}
       className="jump-button next"
     >
       {'>'}
@@ -102,11 +64,8 @@ const PageSelector: FC<PageSelector> = ({ visible }) => {
   const previous = (
     <button
       type="button"
-      disabled={selected <= 1}
-      onClick={() => {
-        if (isReady) previousPage();
-        else if (inRange) setSelected(selected - 1);
-      }}
+      disabled={currentPage <= 1}
+      onClick={() => previousPage()}
       className="jump-button previous"
     >
       {'<'}
@@ -115,29 +74,29 @@ const PageSelector: FC<PageSelector> = ({ visible }) => {
 
   const PageButton: FC<PageButton> = ({ index }) => {
     /** Going to **previous** page will not change numbers */
-    const reachedLeftWall = selected <= visibleOffset;
+    const reachedLeftWall = currentPage <= visibleOffset;
     /** Going to **next** page will not change numbers */
-    const reachedRightWall = selected >= total - visibleOffset;
+    const reachedRightWall = currentPage >= totalPages - visibleOffset;
 
     let pageNumber: number;
     if (reachedLeftWall) {
       pageNumber = index;
     } else if (reachedRightWall) {
-      pageNumber = total - visiblePages + index;
-    } else if (selected === buttonRenderOffset) {
+      pageNumber = totalPages - visiblePages + index;
+    } else if (currentPage === buttonRenderOffset) {
       // Will be the one centered
-      pageNumber = selected;
+      pageNumber = currentPage;
     } else {
       // Surrounding the centered number
-      const min = selected - buttonRenderOffset;
+      const min = currentPage - buttonRenderOffset;
       pageNumber = min + index;
     }
 
     let active: boolean;
     if (reachedLeftWall) {
-      active = index === selected;
+      active = index === currentPage;
     } else if (reachedRightWall) {
-      active = index === visiblePages - (total - selected);
+      active = index === visiblePages - (totalPages - currentPage);
     } else {
       // The one centered
       active = index === buttonRenderOffset;
@@ -146,10 +105,7 @@ const PageSelector: FC<PageSelector> = ({ visible }) => {
     return (
       <button
         className={`page-button ${active ? 'active' : ''}`}
-        onClick={() => {
-          if (isReady) toPage(pageNumber);
-          else if (inRange) setSelected(pageNumber);
-        }}
+        onClick={() => toPage(pageNumber)}
         type="button"
       >
         {pageNumber}
