@@ -59,6 +59,18 @@ const router = createBrowserRouter([
     },
   },
   {
+    path: '/admin/transparency/:year?',
+    element: <Admin.TransparencyOverview />,
+    loader: ({ params }) => {
+      const year = parseFloat(params.year!);
+
+      if (!Number.isNaN(year) && year >= 0 && year % 1 === 0)
+        return new Response(null, { status: 200 });
+
+      return redirect(urls.transparencyRecord);
+    },
+  },
+  {
     path: '/admin/campain/*',
     loader: () => redirect(urls.campainRecord),
   },
