@@ -18,6 +18,17 @@ const router = createBrowserRouter([
     element: <Home />,
   },
   {
+    // Emulate fresh login (there's no auth yet)
+    path: '/admin',
+    loader: ({ request }) => {
+      const url = new URL(request.url);
+      url.pathname = urls.animalRecord;
+      url.search = '';
+      url.searchParams.append('welcome', 'true');
+      return redirect(url.toString());
+    },
+  },
+  {
     path: '/admin/*',
     loader: () => redirect(urls.animalRecord),
   },
