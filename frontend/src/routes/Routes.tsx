@@ -47,6 +47,22 @@ const router = createBrowserRouter([
     },
   },
   {
+    path: '/admin/campain/:_id?',
+    element: <Admin.CampainOverview />,
+    loader: ({ params }) => {
+      const _id = parseFloat(params._id!);
+
+      if (!Number.isNaN(_id) && _id >= 0 && _id % 1 === 0)
+        return new Response(null, { status: 200 });
+
+      return redirect(urls.campainRecord);
+    },
+  },
+  {
+    path: '/admin/campain/*',
+    loader: () => redirect(urls.campainRecord),
+  },
+  {
     path: urls.animalRecord,
     element: <Admin.AnimalRecord />,
   },
