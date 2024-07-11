@@ -4,7 +4,7 @@ import './_admin-form-layout.scss';
 
 interface AdminFormLayoutProps {
   rows: ReactElement[][];
-  sideElement: ReactElement;
+  sideElement?: ReactElement;
 }
 
 const AdminFormLayout: FC<AdminFormLayoutProps> = ({ rows, sideElement }) => {
