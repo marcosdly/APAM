@@ -10,6 +10,8 @@ import * as Admin from '../pages/Admin';
 
 const urls = {
   animalRecord: '/admin/animal/list',
+  transparencyRecord: '/admin/transparency/list',
+  campainRecord: '/admin/campain/list',
 } as const;
 
 const router = createBrowserRouter([
@@ -47,6 +49,14 @@ const router = createBrowserRouter([
   {
     path: urls.animalRecord,
     element: <Admin.AnimalRecord />,
+  },
+  {
+    path: urls.transparencyRecord,
+    element: <Admin.TransparencyRecord />,
+  },
+  {
+    path: urls.campainRecord,
+    element: <Admin.CampainRecord />,
   },
 ]);
 
