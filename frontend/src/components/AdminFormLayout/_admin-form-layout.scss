@@ -27,6 +27,15 @@ $flex-area-main-inputs: calc($total-area-form-inputs - $flex-area-side-panel);
       display: flex;
       flex-direction: column;
       gap: 1rem;
+
+      .input-group {
+        display: flex;
+        gap: 1rem;
+
+        > * {
+          flex: 1;
+        }
+      }
     }
 
     .side-panel {
