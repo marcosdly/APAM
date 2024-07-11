@@ -8,7 +8,7 @@ interface SelectProps extends CommonInputProps {
   options: Record<'id' | 'text', string>[];
 }
 
-const Select: FC<SelectProps> = ({ title, required, options }) => {
+const Select: FC<SelectProps> = ({ title, required, options, placeholder }) => {
   const optionElements: ReactElement[] = options.map((data) => (
     <option key={crypto.randomUUID()} value={data.id}>
       {data.text}
@@ -19,7 +19,7 @@ const Select: FC<SelectProps> = ({ title, required, options }) => {
     <div className="admin-input__select">
       <Title text={title} required={required} />
       <select className="admin-input__simple-text-box">
-        <option value="">Selecione uma opção</option>
+        <option value="">{placeholder || 'Selecione uma opção'}</option>
         {optionElements}
       </select>
     </div>
