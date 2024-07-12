@@ -1,0 +1,16 @@
+@use '../../assets/fontes.scss' as font;
+
+@include font.inter;
+
+* {
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  height: 100vh;
+}
+
+#root,
+.application-container {
+  height: 100%;
+}

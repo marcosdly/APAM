@@ -4,6 +4,8 @@ import { useAdminPanel } from '@/hooks/AdminPanelProvider';
 import { FC, useEffect } from 'react';
 import * as AdminInput from '@/components/AdminInput';
 
+import './_common.scss';
+
 const Consumer: FC<unknown> = () => {
   const adminPanel = useAdminPanel();
 

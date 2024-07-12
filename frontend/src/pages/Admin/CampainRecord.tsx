@@ -5,6 +5,8 @@ import { useAdminPanel } from '@/hooks/AdminPanelProvider';
 import { PaginatedTableProvider } from '@/hooks/PaginatedTableProvider';
 import { FC, useEffect } from 'react';
 
+import './_common.scss';
+
 const Consumer: FC<unknown> = () => {
   const adminPanel = useAdminPanel();
 

@@ -6,6 +6,8 @@ import { useAdminPanel } from '@/hooks/AdminPanelProvider';
 import { FC, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
+import './_common.scss';
+
 const Consumer: FC<unknown> = () => {
   const adminPanel = useAdminPanel();
   const location = useLocation();
