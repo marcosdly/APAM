@@ -1,6 +1,6 @@
 @use 'sass:math';
-@use '../../../pages/Admin/_colors.scss' as color;
-@use '../common-options' as common;
+@use '../../pages/Admin/_colors.scss' as color;
+@use './common-options' as common;
 
 $preview-size: 150px;
 $file-button-height: 2rem;
