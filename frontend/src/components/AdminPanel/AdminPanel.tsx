@@ -47,9 +47,11 @@ const Consumer: FC<HTMLAttributes<HTMLElement>> = ({ children }) => {
     settings.buttons && hasAnyValid(settings.buttons) ? 'with-edge-button' : '';
 
   return (
-    <div className={`admin-panel ${withBanner} ${withTitle}`}>
+    <div className={`admin-panel`}>
       {withBanner && <Banner />}
-      <article className={`admin-panel__working-area ${withButton}`}>
+      <article
+        className={`admin-panel__working-area ${withBanner} ${withButton}`}
+      >
         {withTitle && <PageTitle />}
         {withButton && <EdgeButtonContainer />}
         <main className={`admin-panel__content-frame ${withButton}`}>

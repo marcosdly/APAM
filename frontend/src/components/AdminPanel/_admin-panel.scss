@@ -1,5 +1,6 @@
 @use '../../pages/Admin/colors' as color;
 @use '../../assets/fontes' as font;
+@use 'sass:math';
 
 @import '../../assets/variables';
 @import './options';
@@ -21,15 +22,25 @@
 .admin-panel {
   background-color: color.$primary;
   height: calc(100% - var(--header-height));
-  padding: var(--v-margin) var(--h-margin);
   display: flex;
+  flex-direction: column;
+  justify-content: center;
 
   &__working-area {
-    max-width: 1000px;
-    margin: 0 auto;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    margin: 2rem 2rem 2rem 2rem;
     flex: 1;
+
+    > * {
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    &.with-banner {
+      margin-top: 0;
+    }
   }
 
   &__content-frame {
@@ -41,10 +52,11 @@
   }
 
   &__page-title {
-    margin-bottom: 1rem;
-    margin-left: 2rem;
+    padding-bottom: 0.5rem;
+    padding-left: 2rem;
     font-size: 2rem;
     font-weight: bold;
+    line-height: 1;
 
     @media ($smartphone-and-tablet-size) {
       margin-left: 1rem;
@@ -54,15 +66,13 @@
 
   &__banner {
     background-color: color.$secondary;
-    margin-top: $banner-top-margin;
-    margin-bottom: $banner-offset-bottom;
-    margin-right: calc($base-margin * 3);
+    margin: 1rem 0;
     padding: 0.5rem 1rem;
     border-radius: 0 10px 10px 0;
-    max-width: $max-banner-width;
+    max-width: 85%;
 
     @media ($smartphone-and-tablet-size) {
-      margin-right: $base-margin;
+      max-width: 90%;
     }
   }
 
@@ -70,6 +80,7 @@
     color: color.$primary;
     font-weight: bold;
     font-size: 1.2rem;
+    letter-spacing: 0.5px;
   }
 
   &__edge-btn-container {
@@ -81,6 +92,7 @@
     flex-direction: row;
     justify-content: end;
     padding-right: $edge-button-margin-between;
+    z-index: math.$max-safe-integer;
   }
 
   &__edge-btn {
