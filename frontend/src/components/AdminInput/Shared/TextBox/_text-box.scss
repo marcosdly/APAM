@@ -1,6 +1,6 @@
 @use '../../../../pages/Admin/colors' as color;
 
-@import './options';
+@use './options' as *;
 
 .admin-input {
   &__simple-text-box,

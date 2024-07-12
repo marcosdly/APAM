@@ -1,8 +1,7 @@
 @use '../../pages/Admin/colors' as color;
 @use '../../assets/fontes' as font;
 @use 'sass:math';
-
-@import '../../assets/variables';
+@use '../../assets/variables' as *;
 
 @include font.inter;
 
