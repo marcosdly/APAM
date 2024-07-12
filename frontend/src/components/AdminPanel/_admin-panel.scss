@@ -3,9 +3,12 @@
 @use 'sass:math';
 
 @import '../../assets/variables';
-@import './options';
 
 @include font.inter;
+
+$edge-button-letter-spacing: 0.3px;
+$edge-button-margin-between: 1rem;
+$edge-button-height: 2rem;
 
 :root {
   --h-margin: 2rem;
