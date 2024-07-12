@@ -1,6 +1,6 @@
 @use '../../../../pages/Admin/colors' as color;
 
-@use './options' as *;
+$input-overall-padding: 0.5rem;
 
 .admin-input {
   &__simple-text-box,
