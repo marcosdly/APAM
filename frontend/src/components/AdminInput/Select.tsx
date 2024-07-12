@@ -1,14 +1,14 @@
 import { FC, ReactElement } from 'react';
-import Title from '../Shared/Title/Title';
-import { CommonInputProps } from '../common';
+import { CommonInputProps } from './common';
 
-import '../Shared/TextBox/_text-box.scss';
+import './Shared/TextBox/_text-box.scss';
+import Wrapper from './Wrapper';
 
 interface SelectProps extends CommonInputProps {
   options: Record<'id' | 'text', string>[];
 }
 
-const Select: FC<SelectProps> = ({ title, required, options, placeholder }) => {
+const Select: FC<SelectProps> = ({ options, ...rest }) => {
   const optionElements: ReactElement[] = options.map((data) => (
     <option key={crypto.randomUUID()} value={data.id}>
       {data.text}
@@ -16,13 +16,12 @@ const Select: FC<SelectProps> = ({ title, required, options, placeholder }) => {
   ));
 
   return (
-    <div className="admin-input__select">
-      <Title text={title} required={required} />
+    <Wrapper className="admin-input__select" {...rest}>
       <select className="admin-input__simple-text-box">
-        <option value="">{placeholder || 'Selecione uma opção'}</option>
+        <option value="">{rest.placeholder || 'Selecione uma opção'}</option>
         {optionElements}
       </select>
-    </div>
+    </Wrapper>
   );
 };
 

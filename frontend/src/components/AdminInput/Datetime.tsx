@@ -1,6 +1,6 @@
 import { FC } from 'react';
-import { InputProps } from '../common';
-import Title from '../Shared/Title/Title';
+import { InputProps } from './common';
+import Wrapper from './Wrapper';
 
 interface DatetimeProps extends InputProps {
   min?: Date;
@@ -8,9 +8,8 @@ interface DatetimeProps extends InputProps {
   value?: Date;
 }
 
-const Datetime: FC<DatetimeProps> = ({ title, required, min, max, value }) => (
-  <div className="admin-input__datetime">
-    <Title text={title} required={required} />
+const Datetime: FC<DatetimeProps> = ({ min, max, value, ...rest }) => (
+  <Wrapper className="admin-input__datetime" {...rest}>
     <input
       type="datetime-local"
       className="admin-input__simple-text-box datetime-input"
@@ -18,6 +17,6 @@ const Datetime: FC<DatetimeProps> = ({ title, required, min, max, value }) => (
       max={max?.valueOf?.()}
       value={value?.valueOf?.()}
     />
-  </div>
+  </Wrapper>
 );
 export default Datetime;
