@@ -7,68 +7,46 @@
 @include font.inter;
 
 :root {
-  --top-margin: calc(#{$base-margin} * 3);
-  --bottom-margin: calc(#{$base-margin} * 1.5);
-
-  // Remaining space resulting of subtracting header height and current vertical
-  // margins from current viewport size.
-  // If vertical margins are 50px total, header height is 50px, and viewport size
-  // is 400px, the *minimum* available space for forms is 400px - 50px - 50px,
-  // same as 300px.
-  // This is necessary because forcing 100% height relative to 100vh on a block
-  // element that is empty results in the innermost children not affecting said
-  // element's height when content size inevitably grows past it.
-  // Scrolling the parent element of an arbitrarily sized container is, of course,
-  // a design choice.
-  --useful-form-space: calc(
-    100vh - var(--header-height) - var(--top-margin) - var(--bottom-margin)
-  );
+  --h-margin: 2rem;
+  --v-margin: 4rem;
 }
 
 @media ($smartphone-and-tablet-size) {
   :root {
-    --top-margin: calc(#{$base-margin} * 1.5);
-    --bottom-margin: #{$min-margin};
+    --v-margin: 2rem;
+    --h-margin: 5px;
   }
 }
 
 .admin-panel {
   background-color: color.$primary;
-
-  * {
-    font-family: 'Inter', sans-serif;
-    color: color.$secondary;
-  }
+  height: calc(100% - var(--header-height));
+  padding: var(--v-margin) var(--h-margin);
+  display: flex;
 
   &__working-area {
-    min-height: 100%;
-    margin: var(--top-margin) $base-margin var(--bottom-margin) $base-margin;
-
-    @media ($smartphone-and-tablet-size) {
-      margin-left: $min-margin;
-      margin-right: $min-margin;
-    }
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
   }
 
   &__content-frame {
-    min-height: var(--useful-form-space);
     overflow-x: auto;
     border: solid 2px color.$secondary;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    padding-bottom: 0.5rem;
-    padding-top: calc(#{$edge-button-height} / 2 + 0.5rem);
+    padding: calc(#{$edge-button-height} * 0.75) 1rem;
     display: flex;
+    flex: 1;
   }
 
   &__page-title {
     margin-bottom: 1rem;
-    margin-left: 1.5rem;
+    margin-left: 2rem;
     font-size: 2rem;
     font-weight: bold;
 
     @media ($smartphone-and-tablet-size) {
-      margin-bottom: 1rem;
       margin-left: 1rem;
       font-size: 1.5rem;
     }
