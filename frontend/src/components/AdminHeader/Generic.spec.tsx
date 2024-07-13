@@ -5,7 +5,7 @@ import AdminHeader from './AdminHeader';
 
 namespace Test {
   export function buttonsPresent() {
-    expect(screen.getByText('Registro')).toBeInTheDocument();
+    expect(screen.getByText('Animais')).toBeInTheDocument();
     expect(screen.getByText('Campanhas')).toBeInTheDocument();
     expect(screen.getByText('Transparência')).toBeInTheDocument();
     expect(screen.getByText('Sair')).toBeInTheDocument();

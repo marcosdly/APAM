@@ -4,19 +4,22 @@ import CompleteLogo from '@/components/icons/CompleteLogo';
 import './_admin-header.scss';
 import BurgerMenu from '../BurgerMenu/BurgerMenu';
 import { useSidebar } from '@/hooks/SidebarProvider';
+import { staticUrl } from '@/services/api/reactRoutes';
 
 interface ButtonProps {
   title: string;
   endalign?: boolean;
+  href?: string;
 }
 
 interface HeaderProps {
   sidebar?: boolean;
 }
 
-const Button: FC<ButtonProps> = ({ title, endalign }) => (
+const Button: FC<ButtonProps> = ({ title, endalign, href }) => (
   <button
     className={`${endalign ? 'admin-header__btn-end-align' : ''} admin-header__btn`}
+    onClick={() => href && window.location.replace(href)}
   >
     {title}
   </button>
@@ -34,9 +37,9 @@ const AdminHeader: FC<HeaderProps> = ({ sidebar }) => {
         <BurgerMenu className="admin-header__burger-menu" />
       </div>
       <nav className="admin-header__nav">
-        <Button title="Registro" />
-        <Button title="Campanhas" />
-        <Button title="Transparência" />
+        <Button title="Animais" href={staticUrl.animalRecord} />
+        <Button title="Campanhas" href={staticUrl.campainRecord} />
+        <Button title="Transparência" href={staticUrl.transparencyRecord} />
         <Button title="Sair" endalign={true} />
       </nav>
     </header>
