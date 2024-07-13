@@ -7,12 +7,11 @@ import {
 
 import Home from '../pages/Home/Home.tsx';
 import * as Admin from '../pages/Admin';
-
-const urls = {
-  animalRecord: '/admin/animal/list',
-  transparencyRecord: '/admin/transparency/list',
-  campainRecord: '/admin/campain/list',
-} as const;
+import {
+  dynamicUrl,
+  staticUrl,
+  wildcardUrl,
+} from '@/services/api/reactRoutes.ts';
 
 const router = createBrowserRouter([
   {
@@ -21,21 +20,21 @@ const router = createBrowserRouter([
   },
   {
     // Emulate fresh login (there's no auth yet)
-    path: '/admin',
+    path: staticUrl.admin,
     loader: ({ request }) => {
       const url = new URL(request.url);
-      url.pathname = urls.animalRecord;
+      url.pathname = staticUrl.animalRecord;
       url.search = '';
       url.searchParams.append('welcome', 'true');
       return redirect(url.toString());
     },
   },
   {
-    path: '/admin/*',
-    loader: () => redirect(urls.animalRecord),
+    path: wildcardUrl.admin,
+    loader: () => redirect(staticUrl.animalRecord),
   },
   {
-    path: '/admin/animal/:_id?',
+    path: dynamicUrl.animalOverview,
     element: <Admin.AnimalOverview />,
     loader: ({ params }): Response => {
       const _id = parseFloat(params._id!);
@@ -43,11 +42,11 @@ const router = createBrowserRouter([
       if (!Number.isNaN(_id) && _id >= 0 && _id % 1 === 0)
         return new Response(null, { status: 200 });
 
-      return redirect(urls.animalRecord);
+      return redirect(staticUrl.animalRecord);
     },
   },
   {
-    path: '/admin/campain/:_id?',
+    path: dynamicUrl.campainOverview,
     element: <Admin.CampainOverview />,
     loader: ({ params }) => {
       const _id = parseFloat(params._id!);
@@ -55,11 +54,11 @@ const router = createBrowserRouter([
       if (!Number.isNaN(_id) && _id >= 0 && _id % 1 === 0)
         return new Response(null, { status: 200 });
 
-      return redirect(urls.campainRecord);
+      return redirect(staticUrl.campainRecord);
     },
   },
   {
-    path: '/admin/transparency/:year?',
+    path: dynamicUrl.transparencyOverview,
     element: <Admin.TransparencyOverview />,
     loader: ({ params }) => {
       const year = parseFloat(params.year!);
@@ -67,23 +66,23 @@ const router = createBrowserRouter([
       if (!Number.isNaN(year) && year >= 0 && year % 1 === 0)
         return new Response(null, { status: 200 });
 
-      return redirect(urls.transparencyRecord);
+      return redirect(staticUrl.transparencyRecord);
     },
   },
   {
-    path: '/admin/campain/*',
-    loader: () => redirect(urls.campainRecord),
+    path: wildcardUrl.campain,
+    loader: () => redirect(staticUrl.campainRecord),
   },
   {
-    path: urls.animalRecord,
+    path: staticUrl.animalRecord,
     element: <Admin.AnimalRecord />,
   },
   {
-    path: urls.transparencyRecord,
+    path: staticUrl.transparencyRecord,
     element: <Admin.TransparencyRecord />,
   },
   {
-    path: urls.campainRecord,
+    path: staticUrl.campainRecord,
     element: <Admin.CampainRecord />,
   },
 ]);
